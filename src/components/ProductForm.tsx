@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
-import { MdCloudUpload, MdDelete, MdAutorenew, MdSave, MdArrowBack } from "react-icons/md";
+import { MdCloudUpload, MdAutorenew, MdSave } from "react-icons/md";
 import { Card } from "@/components/ui/Card";
 
 interface Category {
@@ -48,7 +48,7 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
     stockQuantity: 0,
   });
 
-  const [imageInput, setImageInput] = useState("");
+  const [file, setFile] = useState<File | null>(null);
 
   useEffect(() => {
     if (initialData) {
@@ -90,28 +90,17 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
     }));
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setFile(e.target.files[0]);
+    }
+  };
+
   const generateSku = () => {
     const prefix = formData.name ? formData.name.substring(0, 3).toUpperCase() : "PROD";
     const random = Math.floor(1000 + Math.random() * 9000);
     const sku = `${prefix}-${random}`;
     setFormData(prev => ({ ...prev, sku }));
-  };
-
-  const handleAddImage = () => {
-    if (imageInput.trim()) {
-      setFormData((prev) => ({
-        ...prev,
-        images: [...prev.images, imageInput.trim()],
-      }));
-      setImageInput("");
-    }
-  };
-
-  const handleRemoveImage = (index: number) => {
-    setFormData((prev) => ({
-      ...prev,
-      images: prev.images.filter((_, i) => i !== index),
-    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -120,17 +109,33 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
 
     try {
       const config = {
-        headers: { Authorization: `Bearer ${user?.token}` },
+        headers: { 
+          Authorization: `Bearer ${user?.token}`,
+          'Content-Type': 'multipart/form-data',
+        },
       };
+
+      const data = new FormData();
+      data.append('name', formData.name);
+      data.append('sku', formData.sku);
+      data.append('category', formData.category);
+      data.append('description', formData.description);
+      data.append('unitPrice', String(formData.unitPrice));
+      data.append('costPrice', String(formData.costPrice));
+      data.append('stockQuantity', String(formData.stockQuantity));
+      
+      if (file) {
+        data.append('image', file);
+      }
 
       if (isEdit && initialData?._id) {
         await axios.put(
           `http://localhost:5000/api/products/${initialData._id}`,
-          formData,
+          data,
           config
         );
       } else {
-        await axios.post("http://localhost:5000/api/products", formData, config);
+        await axios.post("http://localhost:5000/api/products", data, config);
       }
 
       router.push("/dashboard/products");
@@ -248,41 +253,29 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
         {/* Right Column - Images & Actions */}
         <div className="space-y-6">
           <Card className="p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Product Images</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Product Image</h3>
             <div className="space-y-4">
-              <div className="flex gap-2">
-                <Input
-                  value={imageInput}
-                  onChange={(e) => setImageInput(e.target.value)}
-                  placeholder="Image URL"
-                  className="flex-1"
-                />
-                <Button type="button" onClick={handleAddImage} variant="secondary">
-                  <MdCloudUpload className="w-5 h-5" />
-                </Button>
-              </div>
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center justify-center w-full">
+                  <label htmlFor="dropzone-file" className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
+                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                      <MdCloudUpload className="w-8 h-8 mb-3 text-gray-400" />
+                      <p className="mb-2 text-sm text-gray-500"><span className="font-semibold">Click to upload</span></p>
+                      <p className="text-xs text-gray-500">PNG, JPG or JPEG</p>
+                    </div>
+                    <input id="dropzone-file" type="file" className="hidden" onChange={handleFileChange} accept="image/*" />
+                  </label>
+                </div>
 
-              <div className="grid grid-cols-2 gap-2 mt-4">
-                {formData.images.map((img, index) => (
-                  <div key={index} className="relative group aspect-square bg-gray-100 rounded-lg overflow-hidden border border-gray-200">
+                {/* Preview Section */}
+                {(file || (formData.images && formData.images.length > 0)) && (
+                  <div className="relative group aspect-square bg-gray-100 rounded-lg overflow-hidden border border-gray-200 w-full max-w-[200px] mx-auto">
                     <img
-                      src={img}
-                      alt={`Product ${index + 1}`}
+                      src={file ? URL.createObjectURL(file) : `http://localhost:5000/${formData.images[0]}`}
+                      alt="Product Preview"
                       className="w-full h-full object-cover"
                       onError={(e) => (e.currentTarget.src = "https://via.placeholder.com/150")}
                     />
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveImage(index)}
-                      className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <MdDelete className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
-                {formData.images.length === 0 && (
-                  <div className="col-span-2 flex items-center justify-center h-32 text-gray-400 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
-                    <span className="text-sm">No images added</span>
                   </div>
                 )}
               </div>
