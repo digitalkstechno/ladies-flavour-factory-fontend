@@ -7,23 +7,62 @@ import { motion, AnimatePresence } from "framer-motion";
 import { clsx } from "clsx";
 import Link from "next/link";
 
+import { notificationService, Notification } from "@/services/notificationService";
+import { toast } from "react-hot-toast";
+import { formatDistanceToNow } from "date-fns";
+
 export default function Header({ onMenuClick }: { onMenuClick?: () => void }) {
   const { user, logout } = useAuth();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
-  const [notifications, setNotifications] = useState([
-    { id: 1, title: "System Update", text: "Welcome to the new dashboard!", time: "Just now", read: false },
-    { id: 2, title: "Low Stock Alert", text: "Vanilla Essence is running low.", time: "2h ago", read: false },
-    { id: 3, title: "New User", text: "Jane Doe was added to the system.", time: "1d ago", read: true },
-  ]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
 
-  const markAllAsRead = () => {
-    setNotifications(notifications.map(n => ({ ...n, read: true })));
+  const fetchNotifications = async () => {
+    try {
+      const data = await notificationService.getNotifications();
+      setNotifications(data);
+    } catch (error) {
+      console.error("Error fetching notifications", error);
+    }
   };
 
-  const clearNotifications = () => {
-    setNotifications([]);
+  useEffect(() => {
+    fetchNotifications();
+    // Optional: Set up polling or socket listener here
+    const interval = setInterval(fetchNotifications, 60000); // Poll every minute
+    return () => clearInterval(interval);
+  }, []);
+
+  const markAllAsRead = async () => {
+    try {
+      await notificationService.markAllAsRead();
+      setNotifications(notifications.map(n => ({ ...n, read: true })));
+      toast.success("All notifications marked as read");
+    } catch (error) {
+      console.error("Error marking notifications as read", error);
+      toast.error("Failed to mark notifications as read");
+    }
   };
+
+  const clearNotifications = async () => {
+    try {
+      await notificationService.clearAllNotifications();
+      setNotifications([]);
+      toast.success("Notifications cleared");
+    } catch (error) {
+      console.error("Error clearing notifications", error);
+      toast.error("Failed to clear notifications");
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    try {
+      return formatDistanceToNow(new Date(dateString), { addSuffix: true });
+    } catch (e) {
+      return "Just now";
+    }
+  };
+
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
@@ -100,14 +139,18 @@ export default function Header({ onMenuClick }: { onMenuClick?: () => void }) {
                     ) : (
                       <ul className="divide-y divide-gray-50">
                         {notifications.map((notification) => (
-                          <li key={notification.id} className={clsx("p-4 hover:bg-gray-50 transition-colors", !notification.read && "bg-indigo-50/30")}>
+                          <li
+                            key={notification._id}
+                            onClick={() => setIsNotificationsOpen(false)}
+                            className={clsx("p-4 hover:bg-gray-50 transition-colors cursor-pointer", !notification.read && "bg-indigo-50/30")}
+                          >
                             <div className="flex justify-between items-start mb-1">
                               <p className={clsx("text-sm font-medium", !notification.read ? "text-indigo-900" : "text-gray-900")}>
                                 {notification.title}
                               </p>
-                              <span className="text-xs text-gray-400 whitespace-nowrap ml-2">{notification.time}</span>
+                              <span className="text-xs text-gray-400 whitespace-nowrap ml-2">{formatDate(notification.createdAt)}</span>
                             </div>
-                            <p className="text-xs text-gray-500 line-clamp-2">{notification.text}</p>
+                            <p className="text-xs text-gray-500 line-clamp-2">{notification.message}</p>
                           </li>
                         ))}
                       </ul>

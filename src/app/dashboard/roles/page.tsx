@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import axios from "axios";
 import { useAuth } from "@/context/AuthContext";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
@@ -9,6 +8,8 @@ import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
 import { MdAdd, MdEdit, MdDelete, MdSecurity, MdCheckCircle, MdCancel } from "react-icons/md";
 import { toast } from "react-hot-toast";
+import { roleService } from "@/services/roleService";
+import axios from "axios";
 
 interface Role {
   _id: string;
@@ -108,9 +109,7 @@ export default function RolesPage() {
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this role? Users with this role may lose access.")) return;
     try {
-      await axios.delete(`http://localhost:5000/api/roles/${id}`, {
-        headers: { Authorization: `Bearer ${user?.token}` },
-      });
+      await roleService.deleteRole(id);
       toast.success("Role deleted successfully");
       fetchRoles();
     } catch (error: any) {

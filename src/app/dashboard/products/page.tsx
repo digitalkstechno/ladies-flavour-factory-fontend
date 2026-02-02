@@ -11,6 +11,8 @@ import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { MdAdd, MdEdit, MdDelete, MdQrCode, MdSearch, MdFilterList, MdShoppingBag } from "react-icons/md";
 import { toast } from "react-hot-toast";
+import { productService } from "@/services/productService";
+import { categoryService } from "@/services/categoryService";
 
 interface Product {
   _id: string;
@@ -46,10 +48,7 @@ export default function ProductsPage() {
       if (keyword) params.keyword = keyword;
       if (selectedCategory) params.category = selectedCategory;
 
-      const { data } = await axios.get("http://localhost:5000/api/products", {
-        headers: { Authorization: `Bearer ${user?.token}` },
-        params,
-      });
+      const data = await productService.getProducts(params);
       setProducts(data.products);
     } catch (error) {
       console.error("Error fetching products", error);
@@ -60,9 +59,7 @@ export default function ProductsPage() {
 
   const fetchCategories = async () => {
     try {
-      const { data } = await axios.get("http://localhost:5000/api/categories", {
-        headers: { Authorization: `Bearer ${user?.token}` },
-      });
+      const data = await categoryService.getCategories();
       setCategories(data);
     } catch (error) {
       console.error("Error fetching categories", error);
@@ -81,9 +78,7 @@ export default function ProductsPage() {
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this product?")) return;
     try {
-      await axios.delete(`http://localhost:5000/api/products/${id}`, {
-        headers: { Authorization: `Bearer ${user?.token}` },
-      });
+      await productService.deleteProduct(id);
       toast.success("Product deleted successfully");
       fetchProducts();
     } catch (error: any) {
@@ -267,7 +262,6 @@ export default function ProductsPage() {
             selectedProductSku && setSelectedProductSku(null);
             selectedProductName && setSelectedProductName(null);
           }}
-          isOpen={!!selectedProductSku}
         />
       )}
     </>

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import axios from "axios";
 import { useAuth } from "@/context/AuthContext";
 import Barcode from "react-barcode";
 import { useReactToPrint } from "react-to-print";
@@ -9,6 +8,8 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { MdPrint, MdQrCode, MdCheckBox, MdCheckBoxOutlineBlank, MdSearch } from "react-icons/md";
 import { Input } from "@/components/ui/Input";
+import { barcodeService } from "@/services/barcodeService";
+import toast from "react-hot-toast";
 
 interface Product {
   _id: string;
@@ -28,11 +29,9 @@ export default function BarcodesPage() {
 
   const fetchProducts = async () => {
     try {
-      const { data } = await axios.get("http://localhost:5000/api/products", {
-        headers: { Authorization: `Bearer ${user?.token}` },
-      });
-      setProducts(data.products);
-      setFilteredProducts(data.products);
+      const data = await barcodeService.getBarcodeProducts();
+      setProducts(data);
+      setFilteredProducts(data);
     } catch (error) {
       console.error("Error fetching products", error);
     } finally {

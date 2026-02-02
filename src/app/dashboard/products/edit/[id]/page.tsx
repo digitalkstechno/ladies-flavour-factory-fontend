@@ -5,6 +5,7 @@ import ProductForm from "@/components/ProductForm";
 import { useAuth } from "@/context/AuthContext";
 import axios from "axios";
 import { useParams } from "next/navigation";
+import { productService } from "@/services/productService";
 
 export default function EditProductPage() {
   const { user } = useAuth();
@@ -15,9 +16,7 @@ export default function EditProductPage() {
   useEffect(() => {
     const fetchProduct = async () => {
       try {
-        const { data } = await axios.get(`http://localhost:5000/api/products/${id}`, {
-          headers: { Authorization: `Bearer ${user?.token}` },
-        });
+        const data = await productService.getProduct(id as string);
         // Transform category object to ID string for form
         const transformedData = {
           ...data,

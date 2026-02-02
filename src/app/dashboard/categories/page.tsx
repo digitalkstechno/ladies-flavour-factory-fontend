@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import axios from "axios";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -10,6 +9,8 @@ import { Modal } from "@/components/ui/Modal";
 import { Card } from "@/components/ui/Card";
 import { MdAdd, MdEdit, MdDelete, MdSearch, MdCategory } from "react-icons/md";
 import { toast } from "react-hot-toast";
+import { categoryService } from "@/services/categoryService";
+
 
 interface Category {
   _id: string;
@@ -35,9 +36,7 @@ export default function CategoriesPage() {
 
   const fetchCategories = async () => {
     try {
-      const { data } = await axios.get("http://localhost:5000/api/categories", {
-        headers: { Authorization: `Bearer ${user?.token}` },
-      });
+      const data = await categoryService.getCategories();
       setCategories(data);
       setFilteredCategories(data);
     } catch (error) {
@@ -79,19 +78,11 @@ export default function CategoriesPage() {
         description,
       };
 
-      const config = {
-        headers: { Authorization: `Bearer ${user?.token}` },
-      };
-
       if (editingCategory) {
-        await axios.put(
-          `http://localhost:5000/api/categories/${editingCategory._id}`,
-          payload,
-          config
-        );
+        await categoryService.updateCategory(editingCategory._id, payload);
         toast.success("Category updated successfully");
       } else {
-        await axios.post("http://localhost:5000/api/categories", payload, config);
+        await categoryService.createCategory(payload);
         toast.success("Category created successfully");
       }
 
@@ -110,9 +101,7 @@ export default function CategoriesPage() {
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this category?")) return;
     try {
-      await axios.delete(`http://localhost:5000/api/categories/${id}`, {
-        headers: { Authorization: `Bearer ${user?.token}` },
-      });
+      await categoryService.deleteCategory(id);
       toast.success("Category deleted successfully");
       fetchCategories();
     } catch (error: any) {
@@ -208,46 +197,34 @@ export default function CategoriesPage() {
               ) : filteredCategories.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="px-6 py-8 text-center text-gray-500">
-                    No categories found. Try adding one!
+                    No categories found
                   </td>
                 </tr>
               ) : (
                 filteredCategories.map((category) => (
                   <tr key={category._id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{category.name}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                        {category.code}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-gray-500 line-clamp-1">{category.description || "-"}</div>
-                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{category.name}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">{category.code}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{category.description}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex justify-end gap-2">
-                        {hasPermission('manage_categories') && (
-                            <>
-                                <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => openEditModal(category)}
-                                className="text-indigo-600 hover:text-indigo-900 hover:bg-indigo-50"
-                                >
-                                <MdEdit className="w-4 h-4" />
-                                </Button>
-                                <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleDelete(category._id)}
-                                className="text-red-600 hover:text-red-900 hover:bg-red-50"
-                                >
-                                <MdDelete className="w-4 h-4" />
-                                </Button>
-                            </>
-                        )}
-                      </div>
+                      {hasPermission('manage_categories') && (
+                        <div className="flex justify-end gap-2">
+                          <button
+                            onClick={() => openEditModal(category)}
+                            className="p-1 text-indigo-600 hover:bg-indigo-50 rounded transition-colors"
+                            title="Edit"
+                          >
+                            <MdEdit className="w-5 h-5" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(category._id)}
+                            className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
+                            title="Delete"
+                          >
+                            <MdDelete className="w-5 h-5" />
+                          </button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))
@@ -257,7 +234,6 @@ export default function CategoriesPage() {
         </div>
       </Card>
 
-      {/* Modal */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
@@ -268,27 +244,26 @@ export default function CategoriesPage() {
             label="Name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="e.g. Beverages"
             required
+            placeholder="e.g. Spices"
           />
           <Input
             label="Code"
             value={code}
             onChange={(e) => setCode(e.target.value)}
-            placeholder="e.g. BEV-001"
             required
+            placeholder="e.g. CAT001"
           />
           <Textarea
             label="Description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Category description..."
-            rows={3}
           />
-          <div className="flex justify-end pt-2 gap-3">
+          <div className="flex justify-end gap-3 mt-6">
             <Button
               type="button"
-              variant="secondary"
+              variant="outline"
               onClick={() => setIsModalOpen(false)}
             >
               Cancel

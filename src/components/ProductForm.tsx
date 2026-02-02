@@ -10,6 +10,8 @@ import { Textarea } from "@/components/ui/Textarea";
 import { MdCloudUpload, MdAutorenew, MdSave } from "react-icons/md";
 import { Card } from "@/components/ui/Card";
 import { toast } from "react-hot-toast";
+import { productService } from "@/services/productService";
+import { categoryService } from "@/services/categoryService";
 
 interface Category {
   _id: string;
@@ -69,9 +71,7 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const { data } = await axios.get("http://localhost:5000/api/categories", {
-          headers: { Authorization: `Bearer ${user?.token}` },
-        });
+        const data = await categoryService.getCategories();
         setCategories(data);
       } catch (error) {
         console.error("Error fetching categories", error);
@@ -109,13 +109,6 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
     setIsSubmitting(true);
 
     try {
-      const config = {
-        headers: { 
-          Authorization: `Bearer ${user?.token}`,
-          'Content-Type': 'multipart/form-data',
-        },
-      };
-
       const data = new FormData();
       data.append('name', formData.name);
       data.append('sku', formData.sku);
@@ -130,14 +123,10 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
       }
 
       if (isEdit && initialData?._id) {
-        await axios.put(
-          `http://localhost:5000/api/products/${initialData._id}`,
-          data,
-          config
-        );
+        await productService.updateProduct(initialData._id, data);
         toast.success("Product updated successfully!");
       } else {
-        await axios.post("http://localhost:5000/api/products", data, config);
+        await productService.createProduct(data);
         toast.success("Product created successfully!");
       }
 

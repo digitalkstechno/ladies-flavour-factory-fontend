@@ -10,6 +10,8 @@ import { Textarea } from "@/components/ui/Textarea";
 import { Badge } from "@/components/ui/Badge";
 import { MdAdd, MdInventory } from "react-icons/md";
 import { toast } from "react-hot-toast";
+import { stockService } from "@/services/stockService";
+import { productService } from "@/services/productService";
 
 interface StockTransaction {
   _id: string;
@@ -43,9 +45,7 @@ export default function StockPage() {
 
   const fetchTransactions = async () => {
     try {
-      const { data } = await axios.get("http://localhost:5000/api/stock", {
-        headers: { Authorization: `Bearer ${user?.token}` },
-      });
+      const data = await stockService.getTransactions();
       setTransactions(data);
     } catch (error) {
       console.error("Error fetching transactions", error);
@@ -56,9 +56,7 @@ export default function StockPage() {
 
   const fetchProducts = async () => {
     try {
-      const { data } = await axios.get("http://localhost:5000/api/products", {
-        headers: { Authorization: `Bearer ${user?.token}` },
-      });
+      const data = await productService.getProducts();
       setProducts(data.products);
     } catch (error) {
       console.error("Error fetching products", error);
@@ -76,18 +74,12 @@ export default function StockPage() {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      await axios.post(
-        "http://localhost:5000/api/stock",
-        {
-          productId,
-          type,
-          quantity,
-          reason,
-        },
-        {
-          headers: { Authorization: `Bearer ${user?.token}` },
-        }
-      );
+      await stockService.createTransaction({
+        productId,
+        type,
+        quantity,
+        reason,
+      });
       toast.success("Stock transaction added successfully");
 
       setIsModalOpen(false);

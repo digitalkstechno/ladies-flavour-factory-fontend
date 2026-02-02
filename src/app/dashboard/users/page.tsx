@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import axios from "axios";
 import { useAuth } from "@/context/AuthContext";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
@@ -10,6 +9,10 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { MdAdd, MdEdit, MdDelete, MdPerson, MdEmail, MdSearch, MdSecurity } from "react-icons/md";
 import { toast } from "react-hot-toast";
+import { userService } from "@/services/userService";
+import { roleService } from "@/services/roleService";
+import axios from "axios";
+
 
 interface Role {
     _id: string;
@@ -98,27 +101,19 @@ export default function UsersPage() {
         payload.password = password;
       }
 
-      const config = {
-        headers: { Authorization: `Bearer ${user?.token}` },
-      };
-
       if (editingUser) {
-        await axios.put(
-          `http://localhost:5000/api/users/${editingUser._id}`,
-          payload,
-          config
-        );
+        await userService.updateUser(editingUser._id, payload);
         toast.success("User updated successfully");
       } else {
-        await axios.post("http://localhost:5000/api/users", payload, config);
+        await userService.createUser(payload);
         toast.success("User created successfully");
       }
 
       setIsModalOpen(false);
       resetForm();
       // Only refetch users, no need to refetch roles usually
-      const { data } = await axios.get("http://localhost:5000/api/users", config);
-      setUsers(data);
+      const usersData = await userService.getUsers();
+      setUsers(usersData);
     } catch (error: any) {
       console.error("Error saving user", error);
       const errorMessage = error.response?.data?.message || "Error saving user";
@@ -131,13 +126,9 @@ export default function UsersPage() {
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this user?")) return;
     try {
-      await axios.delete(`http://localhost:5000/api/users/${id}`, {
-        headers: { Authorization: `Bearer ${user?.token}` },
-      });
+      await userService.deleteUser(id);
       toast.success("User deleted successfully");
-      const { data } = await axios.get("http://localhost:5000/api/users", {
-        headers: { Authorization: `Bearer ${user?.token}` },
-      });
+      const data = await userService.getUsers();
       setUsers(data);
     } catch (error: any) {
       console.error("Error deleting user", error);

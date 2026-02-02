@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { MdPictureAsPdf, MdGridOn, MdInventory, MdWarning, MdAttachMoney } from "react-icons/md";
+import { reportService, ReportStats } from "@/services/reportService";
 
 interface Product {
   _id: string;
@@ -24,24 +25,24 @@ interface Product {
 export default function ReportsPage() {
   const { user } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
+  const [stats, setStats] = useState<ReportStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchProducts = async () => {
+    const fetchReportData = async () => {
       try {
-        const { data } = await axios.get("http://localhost:5000/api/products", {
-          headers: { Authorization: `Bearer ${user?.token}` },
-        });
+        const data = await reportService.getInventoryReport();
         setProducts(data.products);
+        setStats(data.stats);
       } catch (error) {
-        console.error("Error fetching products", error);
+        console.error("Error fetching report data", error);
       } finally {
         setIsLoading(false);
       }
     };
 
     if (user) {
-      fetchProducts();
+      fetchReportData();
     }
   }, [user]);
 
@@ -85,9 +86,9 @@ export default function ReportsPage() {
   };
 
   // Calculations
-  const totalStockValue = products.reduce((acc, p) => acc + p.stockQuantity * p.costPrice, 0);
-  const lowStockProducts = products.filter((p) => p.stockQuantity < 10);
-  const totalItems = products.reduce((acc, p) => acc + p.stockQuantity, 0);
+  const totalStockValue = stats?.totalStockValue || 0;
+  const lowStockCount = stats?.lowStockCount || 0;
+  const totalItems = stats?.totalItems || 0;
 
   return (
     <div className="space-y-6">
@@ -134,7 +135,7 @@ export default function ReportsPage() {
                 </div>
                 <div>
                     <p className="text-sm font-medium text-gray-500">Low Stock Items</p>
-                    <p className="text-2xl font-bold text-gray-900">{lowStockProducts.length}</p>
+                    <p className="text-2xl font-bold text-gray-900">{lowStockCount}</p>
                 </div>
             </div>
         </Card>

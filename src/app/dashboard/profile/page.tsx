@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
 import { MdPerson, MdEmail, MdLock, MdSave } from "react-icons/md";
 import { toast } from "react-hot-toast";
+import { userService } from "@/services/userService";
 
 export default function ProfilePage() {
   const { user, updateUser } = useAuth();
@@ -43,13 +44,7 @@ export default function ProfilePage() {
         payload.password = password;
       }
 
-      const { data } = await axios.put(
-        "http://localhost:5000/api/users/profile",
-        payload,
-        {
-          headers: { Authorization: `Bearer ${user?.token}` },
-        }
-      );
+      const data = await userService.updateProfile(payload);
 
       updateUser(data);
       
