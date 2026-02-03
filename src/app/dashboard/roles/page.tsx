@@ -127,13 +127,13 @@ export default function RolesPage() {
 
       if (editingRole) {
         await axios.put(
-          `http://localhost:5000/api/roles/${editingRole._id}`,
+          `${process.env.NEXT_PUBLIC_API_URL}/roles${editingRole._id}`,
           payload,
           config
         );
         toast.success("Role updated successfully");
       } else {
-        await axios.post("http://localhost:5000/api/roles", payload, config);
+        await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/roles`, payload, config);
         toast.success("Role created successfully");
       }
 
@@ -155,7 +155,7 @@ export default function RolesPage() {
 
   const handleConfirmDelete = async () => {
     if (!deleteConfirmation.id) return;
-    
+
     setIsDeleting(true);
     try {
       await roleService.deleteRole(deleteConfirmation.id);
@@ -187,8 +187,8 @@ export default function RolesPage() {
   };
 
   const togglePermission = (permId: string) => {
-    setSelectedPermissions(prev => 
-      prev.includes(permId) 
+    setSelectedPermissions(prev =>
+      prev.includes(permId)
         ? prev.filter(p => p !== permId)
         : [...prev, permId]
     );
@@ -203,23 +203,23 @@ export default function RolesPage() {
   };
 
   if (!hasPermission('view_roles')) {
-      return (
-        <div className="p-8 flex items-center justify-center h-full">
-            <Card className="w-full max-w-md text-center p-8">
-                <MdSecurity className="w-16 h-16 mx-auto text-red-500 mb-4" />
-                <h2 className="text-xl font-bold text-gray-900 mb-2">Access Denied</h2>
-                <p className="text-gray-600">You do not have permission to view roles.</p>
-            </Card>
-        </div>
-      );
+    return (
+      <div className="p-8 flex items-center justify-center h-full">
+        <Card className="w-full max-w-md text-center p-8">
+          <MdSecurity className="w-16 h-16 mx-auto text-red-500 mb-4" />
+          <h2 className="text-xl font-bold text-gray-900 mb-2">Access Denied</h2>
+          <p className="text-gray-600">You do not have permission to view roles.</p>
+        </Card>
+      </div>
+    );
   }
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-            <h1 className="text-2xl font-bold text-gray-900">Role Management</h1>
-            <p className="text-sm text-gray-500">Create and manage roles and permissions</p>
+          <h1 className="text-2xl font-bold text-gray-900">Role Management</h1>
+          <p className="text-sm text-gray-500">Create and manage roles and permissions</p>
         </div>
         {hasPermission('create_role') && (
           <Button
@@ -276,17 +276,17 @@ export default function RolesPage() {
                 roles.map((r) => (
                   <tr key={r._id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">{r.name}</div>
+                      <div className="text-sm font-medium text-gray-900">{r.name}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-500">{r.description}</div>
+                      <div className="text-sm text-gray-500">{r.description}</div>
                     </td>
                     <td className="px-6 py-4">
-                        <div className="flex flex-wrap gap-1">
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                {r.permissions.length} Permissions
-                            </span>
-                        </div>
+                      <div className="flex flex-wrap gap-1">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          {r.permissions.length} Permissions
+                        </span>
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       {hasPermission('edit_role') && (
@@ -409,53 +409,53 @@ export default function RolesPage() {
               placeholder="Brief description of responsibilities"
             />
           </div>
-          
+
           <div>
             <div className="flex justify-between items-center mb-2">
-                <label className="block text-sm font-medium text-gray-700">Permissions</label>
-                <button 
-                    type="button" 
-                    onClick={toggleAllPermissions}
-                    className="text-xs text-indigo-600 hover:text-indigo-800"
-                >
-                    {selectedPermissions.length === AVAILABLE_PERMISSIONS.length ? 'Deselect All' : 'Select All'}
-                </button>
+              <label className="block text-sm font-medium text-gray-700">Permissions</label>
+              <button
+                type="button"
+                onClick={toggleAllPermissions}
+                className="text-xs text-indigo-600 hover:text-indigo-800"
+              >
+                {selectedPermissions.length === AVAILABLE_PERMISSIONS.length ? 'Deselect All' : 'Select All'}
+              </button>
             </div>
             <div className="max-h-60 overflow-y-auto border rounded-lg p-3 bg-gray-50 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {AVAILABLE_PERMISSIONS.map(perm => (
-                    <div key={perm.id} className="flex items-start">
-                        <div className="flex items-center h-5">
-                            <input
-                                id={`perm-${perm.id}`}
-                                type="checkbox"
-                                checked={selectedPermissions.includes(perm.id)}
-                                onChange={() => togglePermission(perm.id)}
-                                className="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded cursor-pointer"
-                            />
-                        </div>
-                        <div className="ml-3 text-sm">
-                            <label htmlFor={`perm-${perm.id}`} className="font-medium text-gray-700 cursor-pointer select-none">
-                                {perm.label}
-                            </label>
-                        </div>
-                    </div>
-                ))}
+              {AVAILABLE_PERMISSIONS.map(perm => (
+                <div key={perm.id} className="flex items-start">
+                  <div className="flex items-center h-5">
+                    <input
+                      id={`perm-${perm.id}`}
+                      type="checkbox"
+                      checked={selectedPermissions.includes(perm.id)}
+                      onChange={() => togglePermission(perm.id)}
+                      className="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300 rounded cursor-pointer"
+                    />
+                  </div>
+                  <div className="ml-3 text-sm">
+                    <label htmlFor={`perm-${perm.id}`} className="font-medium text-gray-700 cursor-pointer select-none">
+                      {perm.label}
+                    </label>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
-          
+
           <div className="flex justify-end gap-3 pt-4">
             <Button
-                type="button"
-                variant="ghost"
-                onClick={() => setIsModalOpen(false)}
+              type="button"
+              variant="ghost"
+              onClick={() => setIsModalOpen(false)}
             >
-                Cancel
+              Cancel
             </Button>
             <Button
-                type="submit"
-                isLoading={isSubmitting}
+              type="submit"
+              isLoading={isSubmitting}
             >
-                {editingRole ? "Update Role" : "Create Role"}
+              {editingRole ? "Update Role" : "Create Role"}
             </Button>
           </div>
         </form>

@@ -290,7 +290,7 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
                 {(file || (formData.images && formData.images.length > 0)) && (
                   <div className="relative group aspect-square bg-gray-100 rounded-lg overflow-hidden border border-gray-200 w-full max-w-[200px] mx-auto">
                     <img
-                      src={file ? URL.createObjectURL(file) : `http://localhost:5000/${formData.images[0]}`}
+                      src={file ? URL.createObjectURL(file) : `${process.env.NEXT_PUBLIC_API_URL}/${formData.images[0]}`}
                       alt="Product Preview"
                       className="w-full h-full object-cover"
                       onError={(e) => (e.currentTarget.src = "https://via.placeholder.com/150")}
