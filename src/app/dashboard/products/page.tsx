@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import axios from "axios";
 import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
 import BarcodeModal from "@/components/BarcodeModal";
@@ -9,10 +8,11 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
-import { MdAdd, MdEdit, MdDelete, MdQrCode, MdSearch, MdFilterList, MdShoppingBag } from "react-icons/md";
+import { MdAdd, MdEdit, MdDelete, MdQrCode, MdSearch, MdFilterList, MdShoppingBag, MdChevronLeft, MdChevronRight } from "react-icons/md";
 import { toast } from "react-hot-toast";
 import { productService } from "@/services/productService";
 import { catalogService } from "@/services/catalogService";
+import ConfirmationModal from "@/components/ConfirmationModal";
 
 interface Product {
   _id: string;
@@ -34,22 +34,48 @@ export default function ProductsPage() {
   const [catalogs, setCatalogs] = useState<Catalog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Filters
-  const [keyword, setKeyword] = useState("");
+  // Filters & Pagination
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selectedCatalog, setSelectedCatalog] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
   
+  // Confirmation Modal State
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{ isOpen: boolean; id: string | null }>({
+    isOpen: false,
+    id: null
+  });
+  const [isDeleting, setIsDeleting] = useState(false);
+
   // Barcode
   const [selectedProductSku, setSelectedProductSku] = useState<string | null>(null);
   const [selectedProductName, setSelectedProductName] = useState<string | null>(null);
 
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1); // Reset to page 1 on new search
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [search]);
+
   const fetchProducts = async () => {
+    setIsLoading(true);
     try {
-      const params: any = {};
-      if (keyword) params.keyword = keyword;
+      const params: any = {
+        page,
+        limit: 10,
+      };
+      if (debouncedSearch) params.search = debouncedSearch;
       if (selectedCatalog) params.catalog = selectedCatalog;
 
       const data = await productService.getProducts(params);
-      setProducts(data.products);
+      setProducts(data.products || []);
+      setTotalPages(data.pages || 1);
+      setTotalItems(data.total || 0);
     } catch (error) {
       console.error("Error fetching products", error);
     } finally {
@@ -59,8 +85,8 @@ export default function ProductsPage() {
 
   const fetchCatalogs = async () => {
     try {
-      const data = await catalogService.getCatalogs();
-      setCatalogs(data);
+      const data = await catalogService.getCatalogs({ limit: 1000 });
+      setCatalogs(data.catalogs || []);
     } catch (error) {
       console.error("Error fetching catalogs", error);
     }
@@ -69,22 +95,36 @@ export default function ProductsPage() {
   useEffect(() => {
     if (user && hasPermission('view_products')) {
       fetchCatalogs();
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (user && hasPermission('view_products')) {
       fetchProducts();
     } else {
         setIsLoading(false);
     }
-  }, [user, keyword, selectedCatalog]);
+  }, [user, page, debouncedSearch, selectedCatalog]);
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this product?")) return;
+  const handleDeleteClick = (id: string) => {
+    setDeleteConfirmation({ isOpen: true, id });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteConfirmation.id) return;
+    
+    setIsDeleting(true);
     try {
-      await productService.deleteProduct(id);
+      await productService.deleteProduct(deleteConfirmation.id);
       toast.success("Product deleted successfully");
       fetchProducts();
+      setDeleteConfirmation({ isOpen: false, id: null });
     } catch (error: any) {
       console.error("Error deleting product", error);
       const errorMessage = error.response?.data?.message || "Error deleting product";
       toast.error(errorMessage);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -131,8 +171,8 @@ export default function ProductsPage() {
             <MdSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 z-10" />
             <Input
               placeholder="Search by name or SKU..."
-              value={keyword}
-              onChange={(e) => setKeyword(e.target.value)}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
               className="pl-10"
             />
           </div>
@@ -140,7 +180,10 @@ export default function ProductsPage() {
             <MdFilterList className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
             <select
               value={selectedCatalog}
-              onChange={(e) => setSelectedCatalog(e.target.value)}
+              onChange={(e) => {
+                  setSelectedCatalog(e.target.value);
+                  setPage(1); // Reset page on filter change
+              }}
               className="w-full pl-10 pr-4 py-2 h-10 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent appearance-none bg-white text-sm"
             >
               <option value="">All Catalogs</option>
@@ -231,7 +274,7 @@ export default function ProductsPage() {
                             <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => handleDelete(product._id)}
+                                onClick={() => handleDeleteClick(product._id)}
                                 className="text-red-600 hover:text-red-900 hover:bg-red-50"
                             >
                                 <MdDelete className="w-4 h-4" />
@@ -245,6 +288,58 @@ export default function ProductsPage() {
               </tbody>
             </table>
           </div>
+
+          {/* Pagination Controls */}
+          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 sm:px-6">
+            <div className="flex-1 flex justify-between sm:hidden">
+                <Button
+                    variant="outline"
+                    disabled={page === 1}
+                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                    className="relative inline-flex items-center px-4 py-2 text-sm font-medium"
+                >
+                    Previous
+                </Button>
+                <Button
+                    variant="outline"
+                    disabled={page === totalPages || totalPages === 0}
+                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                    className="ml-3 relative inline-flex items-center px-4 py-2 text-sm font-medium"
+                >
+                    Next
+                </Button>
+            </div>
+            <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                <div>
+                    <p className="text-sm text-gray-700">
+                        Showing page <span className="font-medium">{page}</span> of <span className="font-medium">{totalPages}</span>
+                        {totalItems > 0 && <span className="ml-1">({totalItems} results)</span>}
+                    </p>
+                </div>
+                <div>
+                    <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                        <Button
+                            variant="outline"
+                            disabled={page === 1}
+                            onClick={() => setPage(p => Math.max(1, p - 1))}
+                            className="rounded-l-md rounded-r-none px-2 py-2"
+                        >
+                            <span className="sr-only">Previous</span>
+                            <MdChevronLeft className="h-5 w-5" aria-hidden="true" />
+                        </Button>
+                        <Button
+                            variant="outline"
+                            disabled={page === totalPages || totalPages === 0}
+                            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                            className="rounded-r-md rounded-l-none px-2 py-2"
+                        >
+                            <span className="sr-only">Next</span>
+                            <MdChevronRight className="h-5 w-5" aria-hidden="true" />
+                        </Button>
+                    </nav>
+                </div>
+            </div>
+        </div>
         </Card>
       </main>
 
@@ -259,6 +354,17 @@ export default function ProductsPage() {
           }}
         />
       )}
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={deleteConfirmation.isOpen}
+        onClose={() => setDeleteConfirmation({ isOpen: false, id: null })}
+        onConfirm={handleConfirmDelete}
+        title="Delete Product"
+        message="Are you sure you want to delete this product? This action cannot be undone."
+        confirmText="Delete"
+        isLoading={isDeleting}
+      />
     </>
   );
 }

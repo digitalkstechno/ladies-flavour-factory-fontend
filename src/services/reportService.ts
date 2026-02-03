@@ -1,29 +1,25 @@
 import api from './api';
 
-export interface ReportStats {
-  totalStockValue: number;
-  lowStockCount: number;
-  totalItems: number;
-}
-
 export interface ReportData {
-  stats: ReportStats;
-  products: any[]; // Using any for product type for now, or import from productService/types
+  products: any[];
+  page: number;
+  pages: number;
+  total: number;
 }
 
 export const reportService = {
-  getInventoryReport: async (): Promise<ReportData> => {
-    const response = await api.get('/reports/inventory');
+  getInventoryReport: async (page = 1, limit = 10, search = ''): Promise<ReportData> => {
+    const response = await api.get(`/reports/inventory?page=${page}&limit=${limit}&search=${search}`);
     return response.data;
   },
 
-  exportInventoryExcel: async () => {
-    const response = await api.get('/reports/inventory/excel', { responseType: 'blob' });
+  exportInventoryExcel: async (search = '') => {
+    const response = await api.get(`/reports/inventory/excel?search=${search}`, { responseType: 'blob' });
     return response.data;
   },
 
-  exportInventoryPDF: async () => {
-    const response = await api.get('/reports/inventory/pdf', { responseType: 'blob' });
+  exportInventoryPDF: async (search = '') => {
+    const response = await api.get(`/reports/inventory/pdf?search=${search}`, { responseType: 'blob' });
     return response.data;
   },
 };

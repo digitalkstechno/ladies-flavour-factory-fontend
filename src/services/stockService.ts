@@ -1,8 +1,8 @@
 import api from './api';
 
 export const stockService = {
-  getTransactions: async () => {
-    const { data } = await api.get('/stock');
+  getTransactions: async (params?: { page?: number; limit?: number; search?: string; type?: string }) => {
+    const { data } = await api.get('/stock', { params });
     return data;
   },
 

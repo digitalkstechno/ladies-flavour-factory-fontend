@@ -8,9 +8,13 @@ export interface BarcodeProduct {
 }
 
 export const barcodeService = {
-  getBarcodeProducts: async (keyword?: string): Promise<BarcodeProduct[]> => {
-    const params = keyword ? { keyword } : {};
-    const response = await api.get('/barcodes/products', { params });
-    return response.data;
+  getBarcodeProducts: async (params?: { page?: number; limit?: number; search?: string }): Promise<{
+    products: BarcodeProduct[];
+    page: number;
+    pages: number;
+    total: number;
+  }> => {
+    const { data } = await api.get('/barcodes/products', { params });
+    return data;
   },
 };

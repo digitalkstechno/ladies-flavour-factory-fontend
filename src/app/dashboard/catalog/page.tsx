@@ -7,9 +7,10 @@ import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { Modal } from "@/components/ui/Modal";
 import { Card } from "@/components/ui/Card";
-import { MdAdd, MdEdit, MdDelete, MdSearch, MdCategory } from "react-icons/md";
+import { MdAdd, MdEdit, MdDelete, MdSearch, MdCategory, MdChevronLeft, MdChevronRight } from "react-icons/md";
 import { toast } from "react-hot-toast";
 import { catalogService } from "@/services/catalogService";
+import ConfirmationModal from "@/components/ConfirmationModal";
 
 
 interface Catalog {
@@ -21,28 +22,55 @@ interface Catalog {
 export default function CatalogPage() {
   const { user, hasPermission } = useAuth();
   const [catalogs, setCatalogs] = useState<Catalog[]>([]);
-  const [filteredCatalogs, setFilteredCatalogs] = useState<Catalog[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCatalog, setEditingCatalog] = useState<Catalog | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  // Pagination State
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
 
   // Form State
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Confirmation Modal State
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{ isOpen: boolean; id: string | null }>({
+    isOpen: false,
+    id: null
+  });
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const fetchCatalogs = async () => {
+    setIsLoading(true);
     try {
-      const data = await catalogService.getCatalogs();
-      setCatalogs(data);
-      setFilteredCatalogs(data);
+      const data = await catalogService.getCatalogs({
+        page,
+        limit: 10,
+        search: debouncedSearch
+      });
+      setCatalogs(data.catalogs || []);
+      setTotalPages(data.pages || 1);
+      setTotalItems(data.total || 0);
     } catch (error) {
       console.error("Error fetching catalogs", error);
+      toast.error("Failed to fetch catalogs");
     } finally {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setPage(1);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   useEffect(() => {
     if (user && hasPermission('view_catalog')) {
@@ -50,21 +78,7 @@ export default function CatalogPage() {
     } else {
         setIsLoading(false);
     }
-  }, [user]);
-
-  useEffect(() => {
-    if (searchQuery) {
-      const lowerQuery = searchQuery.toLowerCase();
-      const filtered = catalogs.filter(
-        (c) =>
-          c.name.toLowerCase().includes(lowerQuery) ||
-          c.code.toLowerCase().includes(lowerQuery)
-      );
-      setFilteredCatalogs(filtered);
-    } else {
-      setFilteredCatalogs(catalogs);
-    }
-  }, [searchQuery, catalogs]);
+  }, [user, page, debouncedSearch]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,16 +109,25 @@ export default function CatalogPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this catalog?")) return;
+  const handleDeleteClick = (id: string) => {
+    setDeleteConfirmation({ isOpen: true, id });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteConfirmation.id) return;
+    
+    setIsDeleting(true);
     try {
-      await catalogService.deleteCatalog(id);
+      await catalogService.deleteCatalog(deleteConfirmation.id);
       toast.success("Catalog deleted successfully");
       fetchCatalogs();
+      setDeleteConfirmation({ isOpen: false, id: null });
     } catch (error: any) {
       console.error("Error deleting catalog", error);
       const errorMessage = error.response?.data?.message || "Error deleting catalog";
       toast.error(errorMessage);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -188,14 +211,14 @@ export default function CatalogPage() {
                     </div>
                   </td>
                 </tr>
-              ) : filteredCatalogs.length === 0 ? (
+              ) : catalogs.length === 0 ? (
                 <tr>
                   <td colSpan={3} className="px-6 py-8 text-center text-gray-500">
                     No catalogs found
                   </td>
                 </tr>
               ) : (
-                filteredCatalogs.map((catalog) => (
+                catalogs.map((catalog) => (
                   <tr key={catalog._id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{catalog.name}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">{catalog.code}</td>
@@ -210,7 +233,7 @@ export default function CatalogPage() {
                             <MdEdit className="w-5 h-5" />
                           </button>
                           <button
-                            onClick={() => handleDelete(catalog._id)}
+                            onClick={() => handleDeleteClick(catalog._id)}
                             className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
                             title="Delete"
                           >
@@ -225,7 +248,73 @@ export default function CatalogPage() {
             </tbody>
           </table>
         </div>
+        {/* Pagination */}
+        <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 sm:px-6">
+          <div className="flex-1 flex justify-between sm:hidden">
+            <Button
+              variant="outline"
+              disabled={page === 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              className="relative inline-flex items-center px-4 py-2 text-sm font-medium"
+            >
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              disabled={page === totalPages || totalPages === 0}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              className="ml-3 relative inline-flex items-center px-4 py-2 text-sm font-medium"
+            >
+              Next
+            </Button>
+          </div>
+          <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm text-gray-700">
+                Showing page <span className="font-medium">{page}</span> of{" "}
+                <span className="font-medium">{totalPages}</span>
+                {totalItems > 0 && (
+                  <span className="ml-1">({totalItems} results)</span>
+                )}
+              </p>
+            </div>
+            <div>
+              <nav
+                className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px"
+                aria-label="Pagination"
+              >
+                <Button
+                  variant="outline"
+                  disabled={page === 1}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  className="rounded-l-md rounded-r-none px-2 py-2"
+                >
+                  <span className="sr-only">Previous</span>
+                  <MdChevronLeft className="h-5 w-5" aria-hidden="true" />
+                </Button>
+                <Button
+                  variant="outline"
+                  disabled={page === totalPages || totalPages === 0}
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  className="rounded-r-md rounded-l-none px-2 py-2"
+                >
+                  <span className="sr-only">Next</span>
+                  <MdChevronRight className="h-5 w-5" aria-hidden="true" />
+                </Button>
+              </nav>
+            </div>
+          </div>
+        </div>
       </Card>
+
+      <ConfirmationModal
+        isOpen={deleteConfirmation.isOpen}
+        onClose={() => setDeleteConfirmation({ isOpen: false, id: null })}
+        onConfirm={handleConfirmDelete}
+        title="Delete Catalog"
+        message="Are you sure you want to delete this catalog? This action cannot be undone."
+        isLoading={isDeleting}
+      />
 
       <Modal
         isOpen={isModalOpen}

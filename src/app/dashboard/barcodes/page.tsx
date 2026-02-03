@@ -6,7 +6,7 @@ import Barcode from "react-barcode";
 import { useReactToPrint } from "react-to-print";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { MdPrint, MdQrCode, MdCheckBox, MdCheckBoxOutlineBlank, MdSearch } from "react-icons/md";
+import { MdPrint, MdQrCode, MdCheckBox, MdCheckBoxOutlineBlank, MdSearch, MdChevronLeft, MdChevronRight } from "react-icons/md";
 import { Input } from "@/components/ui/Input";
 import { barcodeService } from "@/services/barcodeService";
 import toast from "react-hot-toast";
@@ -21,43 +21,59 @@ interface Product {
 export default function BarcodesPage() {
   const { user } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
-  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+  // const [filteredProducts, setFilteredProducts] = useState<Product[]>([]); // client-side filtering removed
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
   const printRef = useRef(null);
 
   const fetchProducts = async () => {
+    setIsLoading(true);
     try {
-      const data = await barcodeService.getBarcodeProducts();
-      setProducts(data);
-      setFilteredProducts(data);
+      const data = await barcodeService.getBarcodeProducts({
+        page,
+        limit: 10,
+        search: debouncedSearch
+      });
+      
+      // Handle potential legacy array response just in case, though service/backend updated
+      if (Array.isArray(data)) {
+         setProducts(data);
+         setTotalPages(1);
+         setTotalItems(data.length);
+      } else {
+         setProducts(data.products || []);
+         setTotalPages(data.pages || 1);
+         setTotalItems(data.total || 0);
+      }
     } catch (error) {
       console.error("Error fetching products", error);
+      toast.error("Failed to fetch products");
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setPage(1);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  useEffect(() => {
     if (user) {
       fetchProducts();
     }
-  }, [user]);
+  }, [user, page, debouncedSearch]);
 
-  useEffect(() => {
-    if (searchQuery) {
-      const lowerQuery = searchQuery.toLowerCase();
-      const filtered = products.filter(
-        (p) =>
-          p.name.toLowerCase().includes(lowerQuery) ||
-          p.sku.toLowerCase().includes(lowerQuery)
-      );
-      setFilteredProducts(filtered);
-    } else {
-      setFilteredProducts(products);
-    }
-  }, [searchQuery, products]);
+  // Client-side filtering logic removed in favor of backend search
+  // useEffect(() => { ... }, [searchQuery, products]);
 
   const handleSelectProduct = (id: string) => {
     if (selectedProducts.includes(id)) {
@@ -132,11 +148,11 @@ export default function BarcodesPage() {
               <div className="flex items-center justify-center h-full">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
               </div>
-            ) : filteredProducts.length === 0 ? (
+            ) : products.length === 0 ? (
               <p className="p-8 text-center text-gray-500">No products found</p>
             ) : (
               <ul className="space-y-1">
-                {filteredProducts.map((product) => {
+                {products.map((product) => {
                   const isSelected = selectedProducts.includes(product._id);
                   return (
                     <li
@@ -165,6 +181,37 @@ export default function BarcodesPage() {
                   );
                 })}
               </ul>
+            )}
+            
+            {/* Pagination Controls */}
+            {!isLoading && products.length > 0 && (
+                <div className="pt-4 mt-2 border-t border-gray-100">
+                    <div className="flex items-center justify-between">
+                        <p className="text-xs text-gray-500">
+                            Page {page} of {totalPages}
+                        </p>
+                        <div className="flex gap-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={page === 1}
+                                onClick={() => setPage(p => Math.max(1, p - 1))}
+                                className="p-1 h-8 w-8 flex items-center justify-center"
+                            >
+                                <MdChevronLeft className="w-5 h-5" />
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={page === totalPages}
+                                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                                className="p-1 h-8 w-8 flex items-center justify-center"
+                            >
+                                <MdChevronRight className="w-5 h-5" />
+                            </Button>
+                        </div>
+                    </div>
+                </div>
             )}
           </div>
         </Card>

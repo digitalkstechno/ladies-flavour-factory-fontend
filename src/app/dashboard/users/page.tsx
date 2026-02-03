@@ -7,12 +7,11 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { MdAdd, MdEdit, MdDelete, MdPerson, MdEmail, MdSearch, MdSecurity } from "react-icons/md";
+import { MdAdd, MdEdit, MdDelete, MdPerson, MdEmail, MdSearch, MdChevronLeft, MdChevronRight } from "react-icons/md";
 import { toast } from "react-hot-toast";
 import { userService } from "@/services/userService";
 import { roleService } from "@/services/roleService";
-import axios from "axios";
-
+import ConfirmationModal from "@/components/ConfirmationModal";
 
 interface Role {
     _id: string;
@@ -29,12 +28,17 @@ interface User {
 export default function UsersPage() {
   const { user, hasPermission } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
-  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  // Pagination State
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
 
   // Form State
   const [name, setName] = useState("");
@@ -43,25 +47,41 @@ export default function UsersPage() {
   const [roleId, setRoleId] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Confirmation Modal State
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{ isOpen: boolean; id: string | null }>({
+    isOpen: false,
+    id: null
+  });
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const fetchData = async () => {
     try {
       setIsLoading(true);
-      const headers = { Authorization: `Bearer ${user?.token}` };
       
-      const [usersRes, rolesRes] = await Promise.all([
-        axios.get("http://localhost:5000/api/users", { headers }),
-        axios.get("http://localhost:5000/api/roles", { headers })
+      const [usersData, rolesData] = await Promise.all([
+        userService.getUsers({ page, limit: 10, search: debouncedSearch }),
+        roleService.getRoles({ limit: 1000 })
       ]);
 
-      setUsers(usersRes.data);
-      setFilteredUsers(usersRes.data);
-      setRoles(rolesRes.data);
+      setUsers(usersData.users || []);
+      setTotalPages(usersData.pages || 1);
+      setTotalItems(usersData.total || 0);
+      setRoles(rolesData.roles || []);
     } catch (error) {
       console.error("Error fetching data", error);
+      toast.error("Failed to fetch data");
     } finally {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setPage(1);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   useEffect(() => {
     if (user && hasPermission('view_users')) {
@@ -69,23 +89,7 @@ export default function UsersPage() {
     } else {
         setIsLoading(false);
     }
-  }, [user]);
-
-  useEffect(() => {
-    if (!searchQuery) {
-      setFilteredUsers(users);
-    } else {
-      const lowerQuery = searchQuery.toLowerCase();
-      setFilteredUsers(
-        users.filter(
-          (u) =>
-            u.name.toLowerCase().includes(lowerQuery) ||
-            u.email.toLowerCase().includes(lowerQuery) ||
-            u.role?.name?.toLowerCase().includes(lowerQuery)
-        )
-      );
-    }
-  }, [searchQuery, users]);
+  }, [user, page, debouncedSearch]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -111,9 +115,7 @@ export default function UsersPage() {
 
       setIsModalOpen(false);
       resetForm();
-      // Only refetch users, no need to refetch roles usually
-      const usersData = await userService.getUsers();
-      setUsers(usersData);
+      fetchData();
     } catch (error: any) {
       console.error("Error saving user", error);
       const errorMessage = error.response?.data?.message || "Error saving user";
@@ -123,17 +125,25 @@ export default function UsersPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this user?")) return;
+  const handleDeleteClick = (id: string) => {
+    setDeleteConfirmation({ isOpen: true, id });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteConfirmation.id) return;
+    
+    setIsDeleting(true);
     try {
-      await userService.deleteUser(id);
+      await userService.deleteUser(deleteConfirmation.id);
       toast.success("User deleted successfully");
-      const data = await userService.getUsers();
-      setUsers(data);
+      fetchData();
+      setDeleteConfirmation({ isOpen: false, id: null });
     } catch (error: any) {
       console.error("Error deleting user", error);
       const errorMessage = error.response?.data?.message || "Error deleting user";
       toast.error(errorMessage);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -217,14 +227,14 @@ export default function UsersPage() {
                     Loading users...
                   </td>
                 </tr>
-              ) : filteredUsers.length === 0 ? (
+              ) : users.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="px-6 py-12 text-center text-gray-500">
                     No users found matching your search.
                   </td>
                 </tr>
               ) : (
-                filteredUsers.map((u) => (
+                users.map((u) => (
                   <tr key={u._id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
@@ -260,7 +270,7 @@ export default function UsersPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleDelete(u._id)}
+                          onClick={() => handleDeleteClick(u._id)}
                           className="text-red-600 hover:text-red-900"
                         >
                           <MdDelete className="w-4 h-4" />
@@ -273,7 +283,75 @@ export default function UsersPage() {
             </tbody>
           </table>
         </div>
+        {/* Pagination */}
+        <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 sm:px-6">
+          <div className="flex-1 flex justify-between sm:hidden">
+            <Button
+              variant="outline"
+              disabled={page === 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              className="relative inline-flex items-center px-4 py-2 text-sm font-medium"
+            >
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              disabled={page === totalPages || totalPages === 0}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              className="ml-3 relative inline-flex items-center px-4 py-2 text-sm font-medium"
+            >
+              Next
+            </Button>
+          </div>
+          <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm text-gray-700">
+                Showing page <span className="font-medium">{page}</span> of{" "}
+                <span className="font-medium">{totalPages}</span>
+                {totalItems > 0 && (
+                  <span className="ml-1">({totalItems} results)</span>
+                )}
+              </p>
+            </div>
+            <div>
+              <nav
+                className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px"
+                aria-label="Pagination"
+              >
+                <Button
+                  variant="outline"
+                  disabled={page === 1}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  className="rounded-l-md rounded-r-none px-2 py-2"
+                >
+                  <span className="sr-only">Previous</span>
+                  <MdChevronLeft className="h-5 w-5" aria-hidden="true" />
+                </Button>
+                <Button
+                  variant="outline"
+                  disabled={page === totalPages || totalPages === 0}
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  className="rounded-r-md rounded-l-none px-2 py-2"
+                >
+                  <span className="sr-only">Next</span>
+                  <MdChevronRight className="h-5 w-5" aria-hidden="true" />
+                </Button>
+              </nav>
+            </div>
+          </div>
+        </div>
       </Card>
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={deleteConfirmation.isOpen}
+        onClose={() => setDeleteConfirmation({ isOpen: false, id: null })}
+        onConfirm={handleConfirmDelete}
+        title="Delete User"
+        message="Are you sure you want to delete this user? This action cannot be undone."
+        confirmText="Delete"
+        isLoading={isDeleting}
+      />
 
       <Modal
         isOpen={isModalOpen}

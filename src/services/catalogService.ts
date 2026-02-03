@@ -1,8 +1,8 @@
 import api from './api';
 
 export const catalogService = {
-  getCatalogs: async () => {
-    const { data } = await api.get('/catalogs');
+  getCatalogs: async (params?: { page?: number; limit?: number; search?: string }) => {
+    const { data } = await api.get('/catalogs', { params });
     return data;
   },
 

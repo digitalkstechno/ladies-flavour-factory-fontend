@@ -1,8 +1,8 @@
 import api from './api';
 
 export const userService = {
-  getUsers: async () => {
-    const { data } = await api.get('/users');
+  getUsers: async (params?: { page?: number; limit?: number; search?: string }) => {
+    const { data } = await api.get('/users', { params });
     return data;
   },
 

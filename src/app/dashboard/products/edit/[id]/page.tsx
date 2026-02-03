@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
+import { MdArrowBack } from "react-icons/md";
+import { Button } from "@/components/ui/Button";
 import ProductForm from "@/components/ProductForm";
 import { useAuth } from "@/context/AuthContext";
 import axios from "axios";
@@ -53,9 +56,17 @@ export default function EditProductPage() {
 
   return (
     <main className="mx-auto">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Edit Product</h1>
-        <p className="text-sm text-gray-500">Update product details</p>
+      <div className="mb-6 flex items-center gap-4">
+        <Link href="/dashboard/products">
+          <Button variant="outline" size="sm" className="flex items-center gap-2">
+            <MdArrowBack className="w-4 h-4" />
+            Back
+          </Button>
+        </Link>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Edit Product</h1>
+          <p className="text-sm text-gray-500">Update product details</p>
+        </div>
       </div>
       <ProductForm initialData={product} isEdit={true} />
     </main>

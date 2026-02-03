@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { Badge } from "@/components/ui/Badge";
-import { MdAdd, MdInventory } from "react-icons/md";
+import { MdAdd, MdInventory, MdSearch, MdChevronLeft, MdChevronRight } from "react-icons/md";
 import { toast } from "react-hot-toast";
 import { stockService } from "@/services/stockService";
 import { productService } from "@/services/productService";
@@ -41,6 +41,12 @@ export default function StockPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'IN' | 'OUT'>('IN');
 
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+
   // Form State
   const [productId, setProductId] = useState("");
   const [type, setType] = useState("IN");
@@ -49,11 +55,20 @@ export default function StockPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fetchTransactions = async () => {
+    setIsLoading(true);
     try {
-      const data = await stockService.getTransactions();
-      setTransactions(data);
+      const data = await stockService.getTransactions({
+        page,
+        limit: 10,
+        search: debouncedSearch,
+        type: activeTab
+      });
+      setTransactions(data.transactions || []);
+      setTotalPages(data.pages || 1);
+      setTotalItems(data.total || 0);
     } catch (error) {
       console.error("Error fetching transactions", error);
+      toast.error("Failed to fetch transactions");
     } finally {
       setIsLoading(false);
     }
@@ -69,8 +84,21 @@ export default function StockPage() {
   };
 
   useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setPage(1);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  useEffect(() => {
     if (user) {
       fetchTransactions();
+    }
+  }, [user, page, debouncedSearch, activeTab]);
+
+  useEffect(() => {
+    if (user) {
       fetchProducts();
     }
   }, [user]);
@@ -115,8 +143,6 @@ export default function StockPage() {
     }
   };
 
-  const filteredTransactions = transactions.filter(tx => tx.type === activeTab);
-
   return (
     <main className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -133,11 +159,24 @@ export default function StockPage() {
         </Button> */}
       </div>
 
+      {/* Search and Filter */}
+      <div className="flex items-center space-x-4 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+        <div className="relative flex-1 max-w-md">
+          <MdSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+          <Input
+            placeholder="Search stock transactions..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+      </div>
+
       {/* Tabs */}
       <div className="border-b border-gray-200">
         <nav className="-mb-px flex space-x-8" aria-label="Tabs">
           <button
-            onClick={() => setActiveTab('IN')}
+            onClick={() => { setActiveTab('IN'); setPage(1); }}
             className={`${
               activeTab === 'IN'
                 ? 'border-indigo-500 text-indigo-600'
@@ -147,7 +186,7 @@ export default function StockPage() {
             In Stock
           </button>
           <button
-            onClick={() => setActiveTab('OUT')}
+            onClick={() => { setActiveTab('OUT'); setPage(1); }}
             className={`${
               activeTab === 'OUT'
                 ? 'border-indigo-500 text-indigo-600'
@@ -177,12 +216,12 @@ export default function StockPage() {
                 <tr>
                   <td colSpan={6} className="px-6 py-8 text-center text-gray-500">Loading transactions...</td>
                 </tr>
-              ) : filteredTransactions.length === 0 ? (
+              ) : transactions.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-8 text-center text-gray-500">No transactions found</td>
                 </tr>
               ) : (
-                filteredTransactions.map((tx) => (
+                transactions.map((tx) => (
                   <tr key={tx._id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {tx.product?.catalog?.name || '-'}
@@ -210,15 +249,63 @@ export default function StockPage() {
             </tbody>
           </table>
         </div>
-      </div>
-
-      <div className="flex items-center justify-end gap-2">
-        <Button variant="secondary" disabled>
-          Previous
-        </Button>
-        <Button variant="secondary" disabled>
-          Next
-        </Button>
+        {/* Pagination */}
+        <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 sm:px-6">
+          <div className="flex-1 flex justify-between sm:hidden">
+            <Button
+              variant="outline"
+              disabled={page === 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              className="relative inline-flex items-center px-4 py-2 text-sm font-medium"
+            >
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              disabled={page === totalPages || totalPages === 0}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              className="ml-3 relative inline-flex items-center px-4 py-2 text-sm font-medium"
+            >
+              Next
+            </Button>
+          </div>
+          <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm text-gray-700">
+                Showing page <span className="font-medium">{page}</span> of{" "}
+                <span className="font-medium">{totalPages}</span>
+                {totalItems > 0 && (
+                  <span className="ml-1">({totalItems} results)</span>
+                )}
+              </p>
+            </div>
+            <div>
+              <nav
+                className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px"
+                aria-label="Pagination"
+              >
+                <Button
+                  variant="outline"
+                  disabled={page === 1}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  className="rounded-l-md rounded-r-none px-2 py-2"
+                >
+                  <span className="sr-only">Previous</span>
+                  <MdChevronLeft className="h-5 w-5" aria-hidden="true" />
+                </Button>
+                <Button
+                  variant="outline"
+                  disabled={page === totalPages || totalPages === 0}
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  className="rounded-r-md rounded-l-none px-2 py-2"
+                >
+                  <span className="sr-only">Next</span>
+                  <MdChevronRight className="h-5 w-5" aria-hidden="true" />
+                </Button>
+              </nav>
+            </div>
+          </div>
+        </div>
       </div>
 
       <Modal

@@ -71,8 +71,8 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
   useEffect(() => {
     const fetchCatalogs = async () => {
       try {
-        const data = await catalogService.getCatalogs();
-        setCatalogs(data);
+        const data = await catalogService.getCatalogs({ limit: 1000 });
+        setCatalogs(data.catalogs || []);
       } catch (error) {
         console.error("Error fetching catalogs", error);
       }

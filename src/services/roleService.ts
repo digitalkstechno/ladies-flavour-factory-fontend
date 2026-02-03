@@ -1,8 +1,8 @@
 import api from './api';
 
 export const roleService = {
-  getRoles: async () => {
-    const { data } = await api.get('/roles');
+  getRoles: async (params?: { page?: number; limit?: number; search?: string }) => {
+    const { data } = await api.get('/roles', { params });
     return data;
   },
 

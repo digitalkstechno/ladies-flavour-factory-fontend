@@ -6,10 +6,11 @@ import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
-import { MdAdd, MdEdit, MdDelete, MdSecurity, MdCheckCircle, MdCancel } from "react-icons/md";
+import { MdAdd, MdEdit, MdDelete, MdSecurity, MdCheckCircle, MdCancel, MdSearch, MdChevronLeft, MdChevronRight } from "react-icons/md";
 import { toast } from "react-hot-toast";
 import { roleService } from "@/services/roleService";
 import axios from "axios";
+import ConfirmationModal from "@/components/ConfirmationModal";
 
 interface Role {
   _id: string;
@@ -49,23 +50,58 @@ export default function RolesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRole, setEditingRole] = useState<Role | null>(null);
 
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+
   // Form State
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Confirmation Modal State
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{ isOpen: boolean; id: string | null }>({
+    isOpen: false,
+    id: null
+  });
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const fetchRoles = async () => {
+    setIsLoading(true);
     try {
-      setIsLoading(true);
-      const data = await roleService.getRoles();
-      setRoles(data);
+      const data = await roleService.getRoles({
+        page,
+        limit: 10,
+        search: debouncedSearch
+      });
+      // Handle both array response (if backend not updated) and object response
+      if (Array.isArray(data)) {
+        setRoles(data);
+        setTotalPages(1);
+        setTotalItems(data.length);
+      } else {
+        setRoles(data.roles || []);
+        setTotalPages(data.pages || 1);
+        setTotalItems(data.total || 0);
+      }
     } catch (error) {
       console.error("Error fetching roles", error);
+      toast.error("Failed to fetch roles");
     } finally {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setPage(1);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   useEffect(() => {
     if (user && hasPermission('view_roles')) {
@@ -73,7 +109,7 @@ export default function RolesPage() {
     } else {
       setIsLoading(false);
     }
-  }, [user]);
+  }, [user, page, debouncedSearch]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -113,16 +149,25 @@ export default function RolesPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this role? Users with this role may lose access.")) return;
+  const handleDeleteClick = (id: string) => {
+    setDeleteConfirmation({ isOpen: true, id });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteConfirmation.id) return;
+    
+    setIsDeleting(true);
     try {
-      await roleService.deleteRole(id);
+      await roleService.deleteRole(deleteConfirmation.id);
       toast.success("Role deleted successfully");
       fetchRoles();
+      setDeleteConfirmation({ isOpen: false, id: null });
     } catch (error: any) {
       console.error("Error deleting role", error);
       const errorMessage = error.response?.data?.message || "Error deleting role";
       toast.error(errorMessage);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -190,6 +235,19 @@ export default function RolesPage() {
         )}
       </div>
 
+      {/* Search and Filter */}
+      <div className="flex items-center space-x-4 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+        <div className="relative flex-1 max-w-md">
+          <MdSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+          <Input
+            placeholder="Search roles..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+      </div>
+
       <Card noPadding>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
@@ -210,8 +268,8 @@ export default function RolesPage() {
                 </tr>
               ) : roles.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-6 py-12 text-center text-gray-500">
-                    No roles found.
+                  <td colSpan={4} className="px-6 py-8 text-center text-gray-500">
+                    No roles found
                   </td>
                 </tr>
               ) : (
@@ -245,7 +303,7 @@ export default function RolesPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleDelete(r._id)}
+                          onClick={() => handleDeleteClick(r._id)}
                           className="text-red-600 hover:text-red-900"
                         >
                           <MdDelete className="w-4 h-4" />
@@ -258,7 +316,73 @@ export default function RolesPage() {
             </tbody>
           </table>
         </div>
+        {/* Pagination */}
+        <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 sm:px-6">
+          <div className="flex-1 flex justify-between sm:hidden">
+            <Button
+              variant="outline"
+              disabled={page === 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              className="relative inline-flex items-center px-4 py-2 text-sm font-medium"
+            >
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              disabled={page === totalPages || totalPages === 0}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              className="ml-3 relative inline-flex items-center px-4 py-2 text-sm font-medium"
+            >
+              Next
+            </Button>
+          </div>
+          <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm text-gray-700">
+                Showing page <span className="font-medium">{page}</span> of{" "}
+                <span className="font-medium">{totalPages}</span>
+                {totalItems > 0 && (
+                  <span className="ml-1">({totalItems} results)</span>
+                )}
+              </p>
+            </div>
+            <div>
+              <nav
+                className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px"
+                aria-label="Pagination"
+              >
+                <Button
+                  variant="outline"
+                  disabled={page === 1}
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  className="rounded-l-md rounded-r-none px-2 py-2"
+                >
+                  <span className="sr-only">Previous</span>
+                  <MdChevronLeft className="h-5 w-5" aria-hidden="true" />
+                </Button>
+                <Button
+                  variant="outline"
+                  disabled={page === totalPages || totalPages === 0}
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  className="rounded-r-md rounded-l-none px-2 py-2"
+                >
+                  <span className="sr-only">Next</span>
+                  <MdChevronRight className="h-5 w-5" aria-hidden="true" />
+                </Button>
+              </nav>
+            </div>
+          </div>
+        </div>
       </Card>
+
+      <ConfirmationModal
+        isOpen={deleteConfirmation.isOpen}
+        onClose={() => setDeleteConfirmation({ isOpen: false, id: null })}
+        onConfirm={handleConfirmDelete}
+        title="Delete Role"
+        message="Are you sure you want to delete this role? This action cannot be undone."
+        isLoading={isDeleting}
+      />
 
       <Modal
         isOpen={isModalOpen}
