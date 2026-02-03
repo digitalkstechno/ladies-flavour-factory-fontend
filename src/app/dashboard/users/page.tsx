@@ -64,7 +64,7 @@ export default function UsersPage() {
   };
 
   useEffect(() => {
-    if (user && hasPermission('manage_users')) {
+    if (user && hasPermission('view_users')) {
       fetchData();
     } else {
         setIsLoading(false);
@@ -154,13 +154,13 @@ export default function UsersPage() {
     setRoleId(roles.length > 0 ? roles[0]._id : "");
   };
 
-  if (!hasPermission('manage_users')) {
+  if (!hasPermission('view_users')) {
       return (
         <div className="p-8 flex items-center justify-center h-full">
             <Card className="w-full max-w-md text-center p-8">
                 <MdPerson className="w-16 h-16 mx-auto text-red-500 mb-4" />
                 <h2 className="text-xl font-bold text-gray-900 mb-2">Access Denied</h2>
-                <p className="text-gray-600">You do not have permission to manage users.</p>
+                <p className="text-gray-600">You do not have permission to view users.</p>
             </Card>
         </div>
       );
@@ -173,16 +173,18 @@ export default function UsersPage() {
             <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
             <p className="text-sm text-gray-500">Manage system users and assign roles</p>
         </div>
-        <Button
-          onClick={() => {
-            resetForm();
-            setIsModalOpen(true);
-          }}
-          className="flex items-center gap-2"
-        >
-          <MdAdd className="w-5 h-5" />
-          Add User
-        </Button>
+        {hasPermission('create_user') && (
+          <Button
+            onClick={() => {
+              resetForm();
+              setIsModalOpen(true);
+            }}
+            className="flex items-center gap-2"
+          >
+            <MdAdd className="w-5 h-5" />
+            Add User
+          </Button>
+        )}
       </div>
 
       <Card noPadding>
@@ -244,22 +246,26 @@ export default function UsersPage() {
                         </Badge>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => openEditModal(u)}
-                        className="text-indigo-600 hover:text-indigo-900 mr-2"
-                      >
-                        <MdEdit className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDelete(u._id)}
-                        className="text-red-600 hover:text-red-900"
-                      >
-                        <MdDelete className="w-4 h-4" />
-                      </Button>
+                      {hasPermission('edit_user') && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openEditModal(u)}
+                          className="text-indigo-600 hover:text-indigo-900 mr-2"
+                        >
+                          <MdEdit className="w-4 h-4" />
+                        </Button>
+                      )}
+                      {hasPermission('delete_user') && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDelete(u._id)}
+                          className="text-red-600 hover:text-red-900"
+                        >
+                          <MdDelete className="w-4 h-4" />
+                        </Button>
+                      )}
                     </td>
                   </tr>
                 ))

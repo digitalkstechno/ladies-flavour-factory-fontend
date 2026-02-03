@@ -20,8 +20,17 @@ interface Role {
 
 const AVAILABLE_PERMISSIONS = [
   { id: 'view_dashboard', label: 'View Dashboard' },
-  { id: 'manage_users', label: 'Manage Users' },
-  { id: 'manage_roles', label: 'Manage Roles' },
+  // User Management
+  { id: 'view_users', label: 'View Users' },
+  { id: 'create_user', label: 'Create User' },
+  { id: 'edit_user', label: 'Edit User' },
+  { id: 'delete_user', label: 'Delete User' },
+  // Role Management
+  { id: 'view_roles', label: 'View Roles' },
+  { id: 'create_role', label: 'Create Role' },
+  { id: 'edit_role', label: 'Edit Role' },
+  { id: 'delete_role', label: 'Delete Role' },
+  // Product Management
   { id: 'view_products', label: 'View Products' },
   { id: 'create_product', label: 'Create Product' },
   { id: 'edit_product', label: 'Edit Product' },
@@ -49,9 +58,7 @@ export default function RolesPage() {
   const fetchRoles = async () => {
     try {
       setIsLoading(true);
-      const { data } = await axios.get("http://localhost:5000/api/roles", {
-        headers: { Authorization: `Bearer ${user?.token}` },
-      });
+      const data = await roleService.getRoles();
       setRoles(data);
     } catch (error) {
       console.error("Error fetching roles", error);
@@ -61,7 +68,7 @@ export default function RolesPage() {
   };
 
   useEffect(() => {
-    if (user && hasPermission('manage_roles')) {
+    if (user && hasPermission('view_roles')) {
       fetchRoles();
     } else {
       setIsLoading(false);
@@ -150,13 +157,13 @@ export default function RolesPage() {
     }
   };
 
-  if (!hasPermission('manage_roles')) {
+  if (!hasPermission('view_roles')) {
       return (
         <div className="p-8 flex items-center justify-center h-full">
             <Card className="w-full max-w-md text-center p-8">
                 <MdSecurity className="w-16 h-16 mx-auto text-red-500 mb-4" />
                 <h2 className="text-xl font-bold text-gray-900 mb-2">Access Denied</h2>
-                <p className="text-gray-600">You do not have permission to manage roles.</p>
+                <p className="text-gray-600">You do not have permission to view roles.</p>
             </Card>
         </div>
       );
@@ -169,16 +176,18 @@ export default function RolesPage() {
             <h1 className="text-2xl font-bold text-gray-900">Role Management</h1>
             <p className="text-sm text-gray-500">Create and manage roles and permissions</p>
         </div>
-        <Button
-          onClick={() => {
-            resetForm();
-            setIsModalOpen(true);
-          }}
-          className="flex items-center gap-2"
-        >
-          <MdAdd className="w-5 h-5" />
-          Add Role
-        </Button>
+        {hasPermission('create_role') && (
+          <Button
+            onClick={() => {
+              resetForm();
+              setIsModalOpen(true);
+            }}
+            className="flex items-center gap-2"
+          >
+            <MdAdd className="w-5 h-5" />
+            Create Role
+          </Button>
+        )}
       </div>
 
       <Card noPadding>
@@ -222,22 +231,26 @@ export default function RolesPage() {
                         </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => openEditModal(r)}
-                        className="text-indigo-600 hover:text-indigo-900 mr-2"
-                      >
-                        <MdEdit className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDelete(r._id)}
-                        className="text-red-600 hover:text-red-900"
-                      >
-                        <MdDelete className="w-4 h-4" />
-                      </Button>
+                      {hasPermission('edit_role') && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openEditModal(r)}
+                          className="text-indigo-600 hover:text-indigo-900 mr-2"
+                        >
+                          <MdEdit className="w-4 h-4" />
+                        </Button>
+                      )}
+                      {hasPermission('delete_role') && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDelete(r._id)}
+                          className="text-red-600 hover:text-red-900"
+                        >
+                          <MdDelete className="w-4 h-4" />
+                        </Button>
+                      )}
                     </td>
                   </tr>
                 ))
