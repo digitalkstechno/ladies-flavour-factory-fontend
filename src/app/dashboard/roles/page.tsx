@@ -127,13 +127,13 @@ export default function RolesPage() {
 
       if (editingRole) {
         await axios.put(
-          `${process.env.NEXT_PUBLIC_API_URL}/roles${editingRole._id}`,
+          `${process.env.NEXT_PUBLIC_API_URL}/api/roles${editingRole._id}`,
           payload,
           config
         );
         toast.success("Role updated successfully");
       } else {
-        await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/roles`, payload, config);
+        await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/api/roles`, payload, config);
         toast.success("Role created successfully");
       }
 
