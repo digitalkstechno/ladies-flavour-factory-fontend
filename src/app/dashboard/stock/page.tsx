@@ -15,7 +15,11 @@ import { productService } from "@/services/productService";
 
 interface StockTransaction {
   _id: string;
-  product: { name: string; sku: string };
+  product: { 
+    name: string; 
+    sku: string;
+    catalog?: { name: string };
+  };
   user: { name: string };
   type: "IN" | "OUT" | "ADJUSTMENT";
   quantity: number;
@@ -35,6 +39,7 @@ export default function StockPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'IN' | 'OUT'>('IN');
 
   // Form State
   const [productId, setProductId] = useState("");
@@ -110,8 +115,10 @@ export default function StockPage() {
     }
   };
 
+  const filteredTransactions = transactions.filter(tx => tx.type === activeTab);
+
   return (
-    <main className=" space-y-6">
+    <main className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
@@ -120,10 +127,36 @@ export default function StockPage() {
           </h1>
           <p className="text-gray-500 mt-1">Track inventory movements and adjustments.</p>
         </div>
-        <Button onClick={() => setIsModalOpen(true)}>
+        {/* <Button onClick={() => setIsModalOpen(true)}>
           <MdAdd className="w-5 h-5 mr-2" />
           New Stock Entry
-        </Button>
+        </Button> */}
+      </div>
+
+      {/* Tabs */}
+      <div className="border-b border-gray-200">
+        <nav className="-mb-px flex space-x-8" aria-label="Tabs">
+          <button
+            onClick={() => setActiveTab('IN')}
+            className={`${
+              activeTab === 'IN'
+                ? 'border-indigo-500 text-indigo-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+          >
+            In Stock
+          </button>
+          <button
+            onClick={() => setActiveTab('OUT')}
+            className={`${
+              activeTab === 'OUT'
+                ? 'border-indigo-500 text-indigo-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+          >
+            Out Stock
+          </button>
+        </nav>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -131,11 +164,11 @@ export default function StockPage() {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50/50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Catalog</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product Name</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SKU</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reason</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
               </tr>
             </thead>
@@ -144,19 +177,21 @@ export default function StockPage() {
                 <tr>
                   <td colSpan={6} className="px-6 py-8 text-center text-gray-500">Loading transactions...</td>
                 </tr>
-              ) : transactions.length === 0 ? (
+              ) : filteredTransactions.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-8 text-center text-gray-500">No transactions found</td>
                 </tr>
               ) : (
-                transactions.map((tx) => (
+                filteredTransactions.map((tx) => (
                   <tr key={tx._id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(tx.createdAt).toLocaleDateString()}
+                      {tx.product?.catalog?.name || '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {tx.product?.name} 
-                      <span className="ml-2 text-xs text-gray-500 font-normal">({tx.product?.sku})</span>
+                      {tx.product?.name}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {tx.product?.sku}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <Badge variant={getTypeColor(tx.type)}>
@@ -165,9 +200,6 @@ export default function StockPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       {tx.quantity}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {tx.reason || '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {tx.user?.name}

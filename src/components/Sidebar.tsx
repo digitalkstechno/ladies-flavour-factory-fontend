@@ -30,7 +30,7 @@ export default function Sidebar() {
     { name: "Catalog", href: "/dashboard/catalog", icon: MdCategory, permission: "view_catalog" },
     { name: "Products", href: "/dashboard/products", icon: MdShoppingBag, permission: "view_products" },
     { name: "Stock", href: "/dashboard/stock", icon: MdInventory, permission: "manage_stock" },
-    { name: "Barcodes", href: "/dashboard/barcodes", icon: MdQrCode, permission: "view_barcodes" },
+    // { name: "Barcodes", href: "/dashboard/barcodes", icon: MdQrCode, permission: "view_barcodes" },
     { name: "Reports", href: "/dashboard/reports", icon: MdAssessment, permission: "view_reports" },
     { name: "Users", href: "/dashboard/users", icon: MdPeople, permission: "view_users" },
     { name: "Roles", href: "/dashboard/roles", icon: MdSecurity, permission: "view_roles" },

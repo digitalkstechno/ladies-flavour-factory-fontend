@@ -16,4 +16,14 @@ export const reportService = {
     const response = await api.get('/reports/inventory');
     return response.data;
   },
+
+  exportInventoryExcel: async () => {
+    const response = await api.get('/reports/inventory/excel', { responseType: 'blob' });
+    return response.data;
+  },
+
+  exportInventoryPDF: async () => {
+    const response = await api.get('/reports/inventory/pdf', { responseType: 'blob' });
+    return response.data;
+  },
 };
