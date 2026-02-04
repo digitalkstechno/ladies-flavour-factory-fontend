@@ -12,6 +12,7 @@ import { toast } from "react-hot-toast";
 import { userService } from "@/services/userService";
 import { roleService } from "@/services/roleService";
 import ConfirmationModal from "@/components/ConfirmationModal";
+import { Select } from "@/components/ui/Select";
 
 interface Role {
     _id: string;
@@ -223,8 +224,10 @@ export default function UsersPage() {
             <tbody className="bg-white divide-y divide-gray-200">
               {isLoading ? (
                 <tr>
-                  <td colSpan={4} className="px-6 py-12 text-center text-gray-500">
-                    Loading users...
+                  <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
+                    <div className="flex justify-center items-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                    </div>
                   </td>
                 </tr>
               ) : users.length === 0 ? (
@@ -390,18 +393,16 @@ export default function UsersPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
-            <select
+            <Select
+              label="Role"
               value={roleId}
-              onChange={(e) => setRoleId(e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm bg-white"
-              required
-            >
-              <option value="" disabled>Select a role</option>
-              {roles.map(r => (
-                  <option key={r._id} value={r._id}>{r.name}</option>
-              ))}
-            </select>
+              onChange={(val) => setRoleId(String(val))}
+              options={[
+                { value: "", label: "Select a role" },
+                ...roles.map(r => ({ value: r._id, label: r.name }))
+              ]}
+              placeholder="Select a role"
+            />
           </div>
           
           <div className="flex justify-end gap-3 pt-4">

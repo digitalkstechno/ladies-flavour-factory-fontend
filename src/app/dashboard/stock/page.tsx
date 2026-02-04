@@ -12,6 +12,7 @@ import { MdAdd, MdInventory, MdSearch, MdChevronLeft, MdChevronRight } from "rea
 import { toast } from "react-hot-toast";
 import { stockService } from "@/services/stockService";
 import { productService } from "@/services/productService";
+import { Select } from "@/components/ui/Select";
 
 interface StockTransaction {
   _id: string;
@@ -214,7 +215,11 @@ export default function StockPage() {
             <tbody className="bg-white divide-y divide-gray-200">
               {isLoading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-gray-500">Loading transactions...</td>
+                  <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
+                    <div className="flex justify-center items-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                    </div>
+                  </td>
                 </tr>
               ) : transactions.length === 0 ? (
                 <tr>
@@ -315,33 +320,30 @@ export default function StockPage() {
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Product</label>
-            <select
+            <Select
+              label="Product"
               value={productId}
-              onChange={(e) => setProductId(e.target.value)}
-              className="w-full h-10 px-3 py-2 rounded-md border border-gray-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200"
-              required
-            >
-              <option value="">Select Product</option>
-              {products.map((p) => (
-                <option key={p._id} value={p._id}>
-                  {p.name} ({p.sku})
-                </option>
-              ))}
-            </select>
+              onChange={(val) => setProductId(String(val))}
+              options={[
+                { value: "", label: "Select Product" },
+                ...products.map((p) => ({ value: p._id, label: `${p.name} (${p.sku})` }))
+              ]}
+              placeholder="Select Product"
+            />
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Transaction Type</label>
-            <select
+            <Select
+              label="Transaction Type"
               value={type}
-              onChange={(e) => setType(e.target.value)}
-              className="w-full h-10 px-3 py-2 rounded-md border border-gray-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200"
-            >
-              <option value="IN">Stock IN (Add)</option>
-              <option value="OUT">Stock OUT (Remove)</option>
-              <option value="ADJUSTMENT">Adjustment (Correction)</option>
-            </select>
+              onChange={(val) => setType(String(val))}
+              options={[
+                { value: "IN", label: "Stock IN (Add)" },
+                { value: "OUT", label: "Stock OUT (Remove)" },
+                { value: "ADJUSTMENT", label: "Adjustment (Correction)" },
+              ]}
+              placeholder="Select Transaction Type"
+            />
           </div>
 
           <Input

@@ -13,6 +13,7 @@ import { toast } from "react-hot-toast";
 import { productService } from "@/services/productService";
 import { catalogService } from "@/services/catalogService";
 import ConfirmationModal from "@/components/ConfirmationModal";
+import { Select } from "@/components/ui/Select";
 
 interface Product {
   _id: string;
@@ -177,22 +178,20 @@ export default function ProductsPage() {
             />
           </div>
           <div className="relative min-w-[200px]">
-            <MdFilterList className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <select
+            <MdFilterList className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5 z-10" />
+            <Select
               value={selectedCatalog}
-              onChange={(e) => {
-                  setSelectedCatalog(e.target.value);
+              onChange={(val) => {
+                  setSelectedCatalog(String(val));
                   setPage(1); // Reset page on filter change
               }}
-              className="w-full pl-10 pr-4 py-2 h-10 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent appearance-none bg-white text-sm"
-            >
-              <option value="">All Catalogs</option>
-              {catalogs.map((c) => (
-                <option key={c._id} value={c._id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
+              options={[
+                { value: "", label: "All Catalogs" },
+                ...catalogs.map((c) => ({ value: c._id, label: c.name }))
+              ]}
+              className="pl-10"
+              placeholder="All Catalogs"
+            />
           </div>
         </div>
 

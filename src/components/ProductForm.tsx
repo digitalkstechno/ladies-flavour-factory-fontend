@@ -5,6 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
 import { MdCloudUpload, MdAutorenew, MdSave } from "react-icons/md";
 import { Card } from "@/components/ui/Card";
@@ -96,8 +97,8 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
     }
   };
 
-  const handleCatalogChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newCatalogId = e.target.value;
+  const handleCatalogChange = (value: string | number) => {
+    const newCatalogId = String(value);
     const newCatalog = catalogs.find(c => c._id === newCatalogId);
     
     setFormData(prev => {
@@ -189,21 +190,16 @@ export default function ProductForm({ initialData, isEdit = false }: ProductForm
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Basic Information</h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Catalog</label>
-                <select
-                  name="catalog"
+                <Select
+                  label="Catalog"
                   value={formData.catalog}
                   onChange={handleCatalogChange}
-                  className="w-full h-10 px-3 py-2 rounded-md border border-gray-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200"
-                  required
-                >
-                  <option value="">Select Catalog</option>
-                  {catalogs.map((cat) => (
-                    <option key={cat._id} value={cat._id}>
-                      {cat.name}
-                    </option>
-                  ))}
-                </select>
+                  options={[
+                    { value: "", label: "Select Catalog" },
+                    ...catalogs.map(cat => ({ value: cat._id, label: cat.name }))
+                  ]}
+                  placeholder="Select Catalog"
+                />
               </div>
 
               <div>

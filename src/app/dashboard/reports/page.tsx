@@ -147,8 +147,12 @@ export default function ReportsPage() {
             <tbody className="bg-white divide-y divide-gray-200">
                 {isLoading ? (
                 <tr>
-                    <td colSpan={4} className="px-6 py-12 text-center text-gray-500">Loading data...</td>
-                </tr>
+                    <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
+                      <div className="flex justify-center items-center">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                      </div>
+                    </td>
+                  </tr>
                 ) : products.length === 0 ? (
                 <tr>
                     <td colSpan={4} className="px-6 py-12 text-center text-gray-500">No data found</td>
