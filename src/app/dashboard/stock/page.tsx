@@ -8,11 +8,12 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { Badge } from "@/components/ui/Badge";
-import { MdAdd, MdInventory, MdSearch, MdChevronLeft, MdChevronRight, MdClear } from "react-icons/md";
+import { MdAdd, MdInventory, MdSearch, MdClear } from "react-icons/md";
 import { toast } from "react-hot-toast";
 import { stockService } from "@/services/stockService";
 import { productService } from "@/services/productService";
 import { Select } from "@/components/ui/Select";
+import { Table, Column } from "@/components/ui/Table";
 
 interface StockTransaction {
   _id: string;
@@ -155,6 +156,45 @@ export default function StockPage() {
     }
   };
 
+  const columns: Column<StockTransaction>[] = [
+    {
+      header: "Date",
+      render: (tx) => (
+        <span className="text-sm text-gray-500">
+          {new Date(tx.createdAt).toLocaleDateString()} {new Date(tx.createdAt).toLocaleTimeString()}
+        </span>
+      ),
+    },
+    {
+      header: "Catalog",
+      render: (tx) => <span className="text-sm text-gray-500">{tx.product?.catalog?.name || '-'}</span>,
+    },
+    {
+      header: "Product Name",
+      render: (tx) => <span className="text-sm font-medium text-gray-900">{tx.product?.name}</span>,
+    },
+    {
+      header: "SKU",
+      render: (tx) => <span className="text-sm text-gray-500">{tx.product?.sku}</span>,
+    },
+    {
+      header: "Type",
+      render: (tx) => (
+        <Badge variant={getTypeColor(tx.type)}>
+          {tx.type}
+        </Badge>
+      ),
+    },
+    {
+      header: "Quantity",
+      render: (tx) => <span className="text-sm font-medium text-gray-900">{tx.quantity}</span>,
+    },
+    {
+      header: "User",
+      render: (tx) => <span className="text-sm text-gray-500">{tx.user?.name}</span>,
+    },
+  ];
+
   return (
     <main className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -239,123 +279,18 @@ export default function StockPage() {
         </nav>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50/50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Catalog</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">SKU</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {isLoading ? (
-                <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
-                    <div className="flex justify-center items-center">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-                    </div>
-                  </td>
-                </tr>
-              ) : transactions.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-gray-500">No transactions found</td>
-                </tr>
-              ) : (
-                transactions.map((tx) => (
-                  <tr key={tx._id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(tx.createdAt).toLocaleDateString()} {new Date(tx.createdAt).toLocaleTimeString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {tx.product?.catalog?.name || '-'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {tx.product?.name}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {tx.product?.sku}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <Badge variant={getTypeColor(tx.type)}>
-                        {tx.type}
-                      </Badge>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {tx.quantity}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {tx.user?.name}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-        {/* Pagination */}
-        <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 sm:px-6">
-          <div className="flex-1 flex justify-between sm:hidden">
-            <Button
-              variant="outline"
-              disabled={page === 1}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              className="relative inline-flex items-center px-4 py-2 text-sm font-medium"
-            >
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              disabled={page === totalPages || totalPages === 0}
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              className="ml-3 relative inline-flex items-center px-4 py-2 text-sm font-medium"
-            >
-              Next
-            </Button>
-          </div>
-          <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-            <div>
-              <p className="text-sm text-gray-700">
-                Showing page <span className="font-medium">{page}</span> of{" "}
-                <span className="font-medium">{totalPages}</span>
-                {totalItems > 0 && (
-                  <span className="ml-1">({totalItems} results)</span>
-                )}
-              </p>
-            </div>
-            <div>
-              <nav
-                className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px"
-                aria-label="Pagination"
-              >
-                <Button
-                  variant="outline"
-                  disabled={page === 1}
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  className="rounded-l-md rounded-r-none px-2 py-2"
-                >
-                  <span className="sr-only">Previous</span>
-                  <MdChevronLeft className="h-5 w-5" aria-hidden="true" />
-                </Button>
-                <Button
-                  variant="outline"
-                  disabled={page === totalPages || totalPages === 0}
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  className="rounded-r-md rounded-l-none px-2 py-2"
-                >
-                  <span className="sr-only">Next</span>
-                  <MdChevronRight className="h-5 w-5" aria-hidden="true" />
-                </Button>
-              </nav>
-            </div>
-          </div>
-        </div>
-      </div>
+      <Table
+        data={transactions}
+        columns={columns}
+        isLoading={isLoading}
+        pagination={{
+          currentPage: page,
+          totalPages,
+          totalItems,
+          onPageChange: setPage
+        }}
+        emptyMessage="No transactions found"
+      />
 
       <Modal
         isOpen={isModalOpen}

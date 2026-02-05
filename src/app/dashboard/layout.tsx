@@ -38,7 +38,7 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="flex min-h-screen bg-[#F8FAFC]">
+    <div className="flex h-screen bg-[#F8FAFC] overflow-hidden">
       <Sidebar />
       
       {/* Mobile Sidebar Overlay */}
@@ -66,7 +66,7 @@ export default function DashboardLayout({
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <Header onMenuClick={() => setIsMobileMenuOpen(true)} />
-        <main className="flex-1 overflow-x-hidden overflow-y-auto p-2 md:p-4 scroll-smooth">
+        <main className="flex-1 overflow-x-hidden overflow-y-auto p-2 md:p-4 scroll-smooth custom-scrollbar">
           <div className="max-w-full mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
             {children}
           </div>

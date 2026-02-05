@@ -8,12 +8,13 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
-import { MdAdd, MdEdit, MdDelete, MdQrCode, MdSearch, MdFilterList, MdShoppingBag, MdChevronLeft, MdChevronRight } from "react-icons/md";
+import { MdAdd, MdEdit, MdDelete, MdQrCode, MdSearch, MdFilterList, MdShoppingBag } from "react-icons/md";
 import { toast } from "react-hot-toast";
 import { productService } from "@/services/productService";
 import { catalogService } from "@/services/catalogService";
 import ConfirmationModal from "@/components/ConfirmationModal";
 import { Select } from "@/components/ui/Select";
+import { Table, Column } from "@/components/ui/Table";
 
 interface Product {
   _id: string;
@@ -135,6 +136,66 @@ export default function ProductsPage() {
     return 'success';
   };
 
+  const columns: Column<Product>[] = [
+    {
+      header: "Catalog",
+      render: (product) => (
+        <span className="text-sm text-gray-600">
+          {product.catalog?.name || "Uncategorized"}
+        </span>
+      ),
+    },
+    {
+      header: "Product Name",
+      render: (product) => (
+        <span className="text-sm font-medium text-gray-900">{product.name}</span>
+      ),
+    },
+    {
+      header: "SKU",
+      render: (product) => (
+        <span className="text-xs text-gray-500">{product.sku}</span>
+      ),
+    },
+    {
+      header: "Stock",
+      render: (product) => (
+        <Badge variant={getStockStatus(product.stockQuantity)}>
+          {product.stockQuantity} in stock
+        </Badge>
+      ),
+    },
+    {
+      header: "Actions",
+      className: "text-right",
+      render: (product) => (
+        <div className="flex justify-end gap-2">
+          {hasPermission('edit_product') && (
+            <Link href={`/dashboard/products/edit/${product._id}`}>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-indigo-600 hover:text-indigo-900 hover:bg-indigo-50"
+              >
+                <MdEdit className="w-4 h-4" />
+              </Button>
+            </Link>
+          )}
+          {hasPermission('delete_product') && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleDeleteClick(product._id)}
+              className="text-red-600 hover:text-red-900 hover:bg-red-50"
+            >
+              <MdDelete className="w-4 h-4" />
+            </Button>
+          )}
+        </div>
+      ),
+    },
+  ];
+
   if (!hasPermission('view_products')) {
       return (
         <div className="p-8 flex items-center justify-center h-full">
@@ -196,150 +257,18 @@ export default function ProductsPage() {
         </div>
 
         {/* Products Table */}
-        <Card noPadding className="overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50/50">
-                <tr>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Catalog</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Product Name</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">SKU</th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Stock</th>
-                  <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {isLoading ? (
-                  <tr>
-                    <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
-                      <div className="flex justify-center items-center">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-                      </div>
-                    </td>
-                  </tr>
-                ) : products.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
-                      No products found matching your filters.
-                    </td>
-                  </tr>
-                ) : (
-                  products.map((product) => (
-                    <tr key={product._id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm text-gray-600">
-                          {product.catalog?.name || "Uncategorized"}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm font-medium text-gray-900">{product.name}</span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-xs text-gray-500">{product.sku}</span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <Badge variant={getStockStatus(product.stockQuantity)}>
-                          {product.stockQuantity} in stock
-                        </Badge>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div className="flex justify-end gap-2">
-                          {/* {hasPermission('view_barcodes') && (
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                setSelectedProductSku(product.sku);
-                                setSelectedProductName(product.name);
-                                }}
-                                title="View Barcode"
-                                className="text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-                            >
-                                <MdQrCode className="w-4 h-4" />
-                            </Button>
-                          )} */}
-                          {hasPermission('edit_product') && (
-                            <Link href={`/dashboard/products/edit/${product._id}`}>
-                                <Button
-                                variant="ghost"
-                                size="sm"
-                                className="text-indigo-600 hover:text-indigo-900 hover:bg-indigo-50"
-                                >
-                                <MdEdit className="w-4 h-4" />
-                                </Button>
-                            </Link>
-                          )}
-                          {hasPermission('delete_product') && (
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleDeleteClick(product._id)}
-                                className="text-red-600 hover:text-red-900 hover:bg-red-50"
-                            >
-                                <MdDelete className="w-4 h-4" />
-                            </Button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Pagination Controls */}
-          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 sm:px-6">
-            <div className="flex-1 flex justify-between sm:hidden">
-                <Button
-                    variant="outline"
-                    disabled={page === 1}
-                    onClick={() => setPage(p => Math.max(1, p - 1))}
-                    className="relative inline-flex items-center px-4 py-2 text-sm font-medium"
-                >
-                    Previous
-                </Button>
-                <Button
-                    variant="outline"
-                    disabled={page === totalPages || totalPages === 0}
-                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                    className="ml-3 relative inline-flex items-center px-4 py-2 text-sm font-medium"
-                >
-                    Next
-                </Button>
-            </div>
-            <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-                <div>
-                    <p className="text-sm text-gray-700">
-                        Showing page <span className="font-medium">{page}</span> of <span className="font-medium">{totalPages}</span>
-                        {totalItems > 0 && <span className="ml-1">({totalItems} results)</span>}
-                    </p>
-                </div>
-                <div>
-                    <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-                        <Button
-                            variant="outline"
-                            disabled={page === 1}
-                            onClick={() => setPage(p => Math.max(1, p - 1))}
-                            className="rounded-l-md rounded-r-none px-2 py-2"
-                        >
-                            <span className="sr-only">Previous</span>
-                            <MdChevronLeft className="h-5 w-5" aria-hidden="true" />
-                        </Button>
-                        <Button
-                            variant="outline"
-                            disabled={page === totalPages || totalPages === 0}
-                            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                            className="rounded-r-md rounded-l-none px-2 py-2"
-                        >
-                            <span className="sr-only">Next</span>
-                            <MdChevronRight className="h-5 w-5" aria-hidden="true" />
-                        </Button>
-                    </nav>
-                </div>
-            </div>
-        </div>
-        </Card>
+        <Table
+          data={products}
+          columns={columns}
+          isLoading={isLoading}
+          pagination={{
+            currentPage: page,
+            totalPages,
+            totalItems,
+            onPageChange: setPage
+          }}
+          emptyMessage="No products found matching your filters."
+        />
       </main>
 
       {/* Barcode Modal */}

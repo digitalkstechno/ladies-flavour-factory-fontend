@@ -7,12 +7,13 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { MdAdd, MdEdit, MdDelete, MdPerson, MdEmail, MdSearch, MdChevronLeft, MdChevronRight } from "react-icons/md";
+import { MdAdd, MdEdit, MdDelete, MdPerson, MdEmail, MdSearch } from "react-icons/md";
 import { toast } from "react-hot-toast";
 import { userService } from "@/services/userService";
 import { roleService } from "@/services/roleService";
 import ConfirmationModal from "@/components/ConfirmationModal";
 import { Select } from "@/components/ui/Select";
+import { Table, Column } from "@/components/ui/Table";
 
 interface Role {
     _id: string;
@@ -54,6 +55,65 @@ export default function UsersPage() {
     id: null
   });
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const columns: Column<User>[] = [
+    {
+      header: "Name",
+      render: (u) => (
+        <div className="flex items-center">
+          <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 mr-3">
+              <MdPerson className="w-4 h-4" />
+          </div>
+          <div className="text-sm font-medium text-gray-900">{u.name}</div>
+        </div>
+      )
+    },
+    {
+      header: "Email",
+      render: (u) => (
+        <div className="flex items-center text-sm text-gray-500">
+            <MdEmail className="w-4 h-4 mr-2 text-gray-400" />
+            {u.email}
+        </div>
+      )
+    },
+    {
+      header: "Role",
+      render: (u) => (
+        <Badge variant={u.role?.name === 'Admin' ? 'danger' : 'success'}>
+            {u.role?.name || 'No Role'}
+        </Badge>
+      )
+    },
+    {
+      header: "Actions",
+      className: "text-right",
+      render: (u) => (
+        <div className="flex justify-end gap-2">
+          {hasPermission('edit_user') && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => openEditModal(u)}
+              className="text-indigo-600 hover:text-indigo-900"
+            >
+              <MdEdit className="w-4 h-4" />
+            </Button>
+          )}
+          {hasPermission('delete_user') && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleDeleteClick(u._id)}
+              className="text-red-600 hover:text-red-900"
+            >
+              <MdDelete className="w-4 h-4" />
+            </Button>
+          )}
+        </div>
+      )
+    }
+  ];
 
   const fetchData = async () => {
     try {
@@ -198,152 +258,29 @@ export default function UsersPage() {
         )}
       </div>
 
-      <Card noPadding>
-        <div className="p-4 border-b border-gray-100 bg-gray-50/50">
-            <div className="relative max-w-md">
-                <MdSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <Input
-                    placeholder="Search users..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 bg-white"
-                />
-            </div>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {isLoading ? (
-                <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
-                    <div className="flex justify-center items-center">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-                    </div>
-                  </td>
-                </tr>
-              ) : users.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="px-6 py-12 text-center text-gray-500">
-                    No users found matching your search.
-                  </td>
-                </tr>
-              ) : (
-                users.map((u) => (
-                  <tr key={u._id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                            <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 mr-3">
-                                <MdPerson className="w-4 h-4" />
-                            </div>
-                            <div className="text-sm font-medium text-gray-900">{u.name}</div>
-                        </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center text-sm text-gray-500">
-                            <MdEmail className="w-4 h-4 mr-2 text-gray-400" />
-                            {u.email}
-                        </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                        <Badge variant={u.role?.name === 'Admin' ? 'danger' : 'success'}>
-                            {u.role?.name || 'No Role'}
-                        </Badge>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      {hasPermission('edit_user') && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => openEditModal(u)}
-                          className="text-indigo-600 hover:text-indigo-900 mr-2"
-                        >
-                          <MdEdit className="w-4 h-4" />
-                        </Button>
-                      )}
-                      {hasPermission('delete_user') && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeleteClick(u._id)}
-                          className="text-red-600 hover:text-red-900"
-                        >
-                          <MdDelete className="w-4 h-4" />
-                        </Button>
-                      )}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-        {/* Pagination */}
-        <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 sm:px-6">
-          <div className="flex-1 flex justify-between sm:hidden">
-            <Button
-              variant="outline"
-              disabled={page === 1}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              className="relative inline-flex items-center px-4 py-2 text-sm font-medium"
-            >
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              disabled={page === totalPages || totalPages === 0}
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              className="ml-3 relative inline-flex items-center px-4 py-2 text-sm font-medium"
-            >
-              Next
-            </Button>
+      <Table
+        headerContent={
+          <div className="relative max-w-md">
+            <MdSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <Input
+              placeholder="Search users..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 bg-white"
+            />
           </div>
-          <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-            <div>
-              <p className="text-sm text-gray-700">
-                Showing page <span className="font-medium">{page}</span> of{" "}
-                <span className="font-medium">{totalPages}</span>
-                {totalItems > 0 && (
-                  <span className="ml-1">({totalItems} results)</span>
-                )}
-              </p>
-            </div>
-            <div>
-              <nav
-                className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px"
-                aria-label="Pagination"
-              >
-                <Button
-                  variant="outline"
-                  disabled={page === 1}
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  className="rounded-l-md rounded-r-none px-2 py-2"
-                >
-                  <span className="sr-only">Previous</span>
-                  <MdChevronLeft className="h-5 w-5" aria-hidden="true" />
-                </Button>
-                <Button
-                  variant="outline"
-                  disabled={page === totalPages || totalPages === 0}
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  className="rounded-r-md rounded-l-none px-2 py-2"
-                >
-                  <span className="sr-only">Next</span>
-                  <MdChevronRight className="h-5 w-5" aria-hidden="true" />
-                </Button>
-              </nav>
-            </div>
-          </div>
-        </div>
-      </Card>
+        }
+        data={users}
+        columns={columns}
+        isLoading={isLoading}
+        pagination={{
+          currentPage: page,
+          totalPages,
+          totalItems,
+          onPageChange: setPage
+        }}
+        emptyMessage="No users found matching your search."
+      />
 
       {/* Confirmation Modal */}
       <ConfirmationModal

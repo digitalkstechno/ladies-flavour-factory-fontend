@@ -7,10 +7,11 @@ import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { Modal } from "@/components/ui/Modal";
 import { Card } from "@/components/ui/Card";
-import { MdAdd, MdEdit, MdDelete, MdSearch, MdCategory, MdChevronLeft, MdChevronRight } from "react-icons/md";
+import { MdAdd, MdEdit, MdDelete, MdSearch, MdCategory } from "react-icons/md";
 import { toast } from "react-hot-toast";
 import { catalogService } from "@/services/catalogService";
 import ConfirmationModal from "@/components/ConfirmationModal";
+import { Table, Column } from "@/components/ui/Table";
 
 
 interface Catalog {
@@ -44,6 +45,41 @@ export default function CatalogPage() {
     id: null
   });
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const columns: Column<Catalog>[] = [
+    {
+      header: "Name",
+      render: (catalog) => <span className="text-sm font-medium text-gray-900">{catalog.name}</span>,
+    },
+    {
+      header: "Code",
+      render: (catalog) => <span className="text-sm text-gray-500 font-mono">{catalog.code}</span>,
+    },
+    {
+      header: "Actions",
+      className: "text-right",
+      render: (catalog) => (
+        hasPermission('manage_catalog') ? (
+          <div className="flex justify-end gap-2">
+            <button
+              onClick={() => openEditModal(catalog)}
+              className="p-1 text-indigo-600 hover:bg-indigo-50 rounded transition-colors"
+              title="Edit"
+            >
+              <MdEdit className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => handleDeleteClick(catalog._id)}
+              className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
+              title="Delete"
+            >
+              <MdDelete className="w-5 h-5" />
+            </button>
+          </div>
+        ) : null
+      ),
+    },
+  ];
 
   const fetchCatalogs = async () => {
     setIsLoading(true);
@@ -192,120 +228,18 @@ export default function CatalogPage() {
       </div>
 
       {/* Data Table */}
-      <Card noPadding className="overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Name</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Code</th>
-                <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {isLoading ? (
-                <tr>
-                  <td colSpan={3} className="px-6 py-8 text-center text-gray-500">
-                    <div className="flex justify-center items-center">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-                    </div>
-                  </td>
-                </tr>
-              ) : catalogs.length === 0 ? (
-                <tr>
-                  <td colSpan={3} className="px-6 py-8 text-center text-gray-500">
-                    No catalogs found
-                  </td>
-                </tr>
-              ) : (
-                catalogs.map((catalog) => (
-                  <tr key={catalog._id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{catalog.name}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">{catalog.code}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      {hasPermission('manage_catalog') && (
-                        <div className="flex justify-end gap-2">
-                          <button
-                            onClick={() => openEditModal(catalog)}
-                            className="p-1 text-indigo-600 hover:bg-indigo-50 rounded transition-colors"
-                            title="Edit"
-                          >
-                            <MdEdit className="w-5 h-5" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteClick(catalog._id)}
-                            className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
-                            title="Delete"
-                          >
-                            <MdDelete className="w-5 h-5" />
-                          </button>
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-        {/* Pagination */}
-        <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 sm:px-6">
-          <div className="flex-1 flex justify-between sm:hidden">
-            <Button
-              variant="outline"
-              disabled={page === 1}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              className="relative inline-flex items-center px-4 py-2 text-sm font-medium"
-            >
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              disabled={page === totalPages || totalPages === 0}
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              className="ml-3 relative inline-flex items-center px-4 py-2 text-sm font-medium"
-            >
-              Next
-            </Button>
-          </div>
-          <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-            <div>
-              <p className="text-sm text-gray-700">
-                Showing page <span className="font-medium">{page}</span> of{" "}
-                <span className="font-medium">{totalPages}</span>
-                {totalItems > 0 && (
-                  <span className="ml-1">({totalItems} results)</span>
-                )}
-              </p>
-            </div>
-            <div>
-              <nav
-                className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px"
-                aria-label="Pagination"
-              >
-                <Button
-                  variant="outline"
-                  disabled={page === 1}
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  className="rounded-l-md rounded-r-none px-2 py-2"
-                >
-                  <span className="sr-only">Previous</span>
-                  <MdChevronLeft className="h-5 w-5" aria-hidden="true" />
-                </Button>
-                <Button
-                  variant="outline"
-                  disabled={page === totalPages || totalPages === 0}
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  className="rounded-r-md rounded-l-none px-2 py-2"
-                >
-                  <span className="sr-only">Next</span>
-                  <MdChevronRight className="h-5 w-5" aria-hidden="true" />
-                </Button>
-              </nav>
-            </div>
-          </div>
-        </div>
-      </Card>
+      <Table
+        data={catalogs}
+        columns={columns}
+        isLoading={isLoading}
+        pagination={{
+          currentPage: page,
+          totalPages,
+          totalItems,
+          onPageChange: setPage
+        }}
+        emptyMessage="No catalogs found"
+      />
 
       <ConfirmationModal
         isOpen={deleteConfirmation.isOpen}
