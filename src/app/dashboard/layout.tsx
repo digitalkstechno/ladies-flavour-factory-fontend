@@ -58,7 +58,7 @@ export default function DashboardLayout({
               className="absolute left-0 top-0 h-full bg-white z-50"
               onClick={(e) => e.stopPropagation()}
             >
-              <Sidebar />
+              <Sidebar className="flex" />
             </motion.div>
           </motion.div>
         )}

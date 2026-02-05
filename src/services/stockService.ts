@@ -17,4 +17,9 @@ export const stockService = {
     const { data } = await api.post('/stock', transactionData);
     return data;
   },
+
+  scanQR: async (scanData: { sku: string; type: 'IN' | 'OUT' }) => {
+    const { data } = await api.post('/stock/scan', scanData);
+    return data;
+  },
 };

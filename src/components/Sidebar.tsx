@@ -16,7 +16,7 @@ import {
 import { clsx } from "clsx";
 import { motion } from "framer-motion";
 
-export default function Sidebar() {
+export default function Sidebar({ className }: { className?: string }) {
   const { hasPermission } = useAuth();
   const pathname = usePathname();
 
@@ -37,7 +37,10 @@ export default function Sidebar() {
   ];
 
   return (
-    <aside className="w-72 bg-white border-r border-gray-100 hidden md:flex flex-col h-screen sticky top-0 z-30 font-sans">
+    <aside className={clsx(
+      "w-72 bg-white border-r border-gray-100 flex-col h-screen sticky top-0 z-30 font-sans",
+      className || "hidden md:flex"
+    )}>
       {/* Brand Header */}
       <div className="h-20 flex items-center px-8 border-b border-gray-50/50">
         <div className="flex items-center gap-3">
