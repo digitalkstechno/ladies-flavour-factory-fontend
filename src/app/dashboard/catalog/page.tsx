@@ -78,7 +78,7 @@ export default function CatalogPage() {
     } else {
         setIsLoading(false);
     }
-  }, [user, page, debouncedSearch]);
+  }, [user?._id, page, debouncedSearch]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

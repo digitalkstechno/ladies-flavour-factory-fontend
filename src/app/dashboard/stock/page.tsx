@@ -100,13 +100,13 @@ export default function StockPage() {
     if (user) {
       fetchTransactions();
     }
-  }, [user, page, debouncedSearch, activeTab, startDate, endDate]);
+  }, [user?._id, page, debouncedSearch, activeTab, startDate, endDate]);
 
   useEffect(() => {
     if (user) {
       fetchProducts();
     }
-  }, [user]);
+  }, [user?._id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

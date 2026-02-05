@@ -97,7 +97,7 @@ export default function ProductsPage() {
     if (user && hasPermission('view_products')) {
       fetchCatalogs();
     }
-  }, [user]);
+  }, [user?._id]);
 
   useEffect(() => {
     if (user && hasPermission('view_products')) {
@@ -105,7 +105,7 @@ export default function ProductsPage() {
     } else {
         setIsLoading(false);
     }
-  }, [user, page, debouncedSearch, selectedCatalog]);
+  }, [user?._id, page, debouncedSearch, selectedCatalog]);
 
   const handleDeleteClick = (id: string) => {
     setDeleteConfirmation({ isOpen: true, id });
