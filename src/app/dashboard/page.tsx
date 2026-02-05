@@ -7,9 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { MdShoppingBag, MdInventory, MdTrendingUp, MdQrCode, MdAdd, MdCategory } from "react-icons/md";
 import { clsx } from "clsx";
 import { motion } from "framer-motion";
-import { productService } from "@/services/productService";
-import { catalogService } from "@/services/catalogService";
-import { stockService } from "@/services/stockService";
+import { dashboardService } from "@/services/dashboardService";
 import OverviewChart from "@/components/dashboard/OverviewChart";
 import RecentTransactions from "@/components/dashboard/RecentTransactions";
 import Link from "next/link";
@@ -68,54 +66,14 @@ export default function Dashboard() {
     if (!user) return;
     
     try {
-      const endDate = new Date();
-      const startDate = new Date();
-      startDate.setDate(endDate.getDate() - 6); // Last 7 days
+      const data = await dashboardService.getStats();
 
-      // Run independent requests in parallel
-      const promises = [
-         hasPermission('view_products') ? productService.getProducts({ page: 1, limit: 1 }) : Promise.resolve({ total: 0 }),
-         hasPermission('view_catalog') ? catalogService.getCatalogs({ page: 1, limit: 1 }) : Promise.resolve({ total: 0 }),
-         hasPermission('manage_stock') ? stockService.getTransactions({ page: 1, limit: 1, type: 'IN', date: 'today' }) : Promise.resolve({ total: 0 }),
-         hasPermission('manage_stock') ? stockService.getTransactions({ page: 1, limit: 1, type: 'OUT', date: 'today' }) : Promise.resolve({ total: 0 }),
-         hasPermission('manage_stock') ? stockService.getTransactions({ limit: 5 }) : Promise.resolve({ transactions: [] }),
-         hasPermission('manage_stock') ? stockService.getTransactions({ startDate: startDate.toISOString(), endDate: endDate.toISOString(), limit: 1000 }) : Promise.resolve({ transactions: [] })
-      ];
-
-      const [prodRes, catRes, inRes, outRes, recentRes, chartRes] = await Promise.all(promises);
-
-      setProductCount(prodRes?.total || 0);
-      setCatalogCount(catRes?.total || 0);
-      setTodayInCount(inRes?.total || 0);
-      setTodayOutCount(outRes?.total || 0);
-      setRecentTransactions(recentRes?.transactions || []);
-
-      // Process chart data
-      if (chartRes?.transactions) {
-          const chartMap = new Map();
-          // Initialize map with last 7 days
-          for (let i = 0; i < 7; i++) {
-              const d = new Date();
-              d.setDate(endDate.getDate() - i);
-              const dateStr = d.toLocaleDateString('en-US', { weekday: 'short' });
-              chartMap.set(dateStr, { name: dateStr, in: 0, out: 0 });
-          }
-
-          chartRes.transactions.forEach((tx: any) => {
-              const dateStr = new Date(tx.createdAt).toLocaleDateString('en-US', { weekday: 'short' });
-              // We use includes or similar logic if locale format varies slightly, but here we forced format
-              // However, Map keys are exact. Let's make sure we match correctly.
-              // Re-calculate dateStr for the transaction to match the key format
-              if (chartMap.has(dateStr)) {
-                  const data = chartMap.get(dateStr);
-                  if (tx.type === 'IN') data.in += tx.quantity;
-                  else if (tx.type === 'OUT') data.out += tx.quantity;
-              }
-          });
-          
-          // Convert to array and reverse to show oldest to newest (left to right)
-          setChartData(Array.from(chartMap.values()).reverse());
-      }
+      setProductCount(data.counts.products);
+      setCatalogCount(data.counts.catalogs);
+      setTodayInCount(data.counts.todayIn);
+      setTodayOutCount(data.counts.todayOut);
+      setRecentTransactions(data.recentTransactions);
+      setChartData(data.chartData);
 
     } catch (error) {
       console.error("Error fetching dashboard data", error);
