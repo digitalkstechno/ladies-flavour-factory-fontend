@@ -77,19 +77,19 @@ export default function Header({ onMenuClick }: { onMenuClick?: () => void }) {
         </button>
         
         {/* Search Bar */}
-        <div className="hidden md:flex items-center bg-gray-50 rounded-full px-4 py-2 border border-transparent focus-within:border-indigo-200 focus-within:bg-white transition-all duration-300 w-64 lg:w-96">
+        {/* <div className="hidden md:flex items-center bg-gray-50 rounded-full px-4 py-2 border border-transparent focus-within:border-indigo-200 focus-within:bg-white transition-all duration-300 w-64 lg:w-96">
           <MdSearch className="w-5 h-5 text-gray-400" />
           <input 
             type="text" 
             placeholder="Search..." 
             className="bg-transparent border-none outline-none ml-2 text-sm text-gray-700 w-full placeholder:text-gray-400"
           />
-        </div>
+        </div> */}
       </div>
 
       <div className="flex items-center gap-4">
         {/* Notifications */}
-        <div className="relative">
+        {/* <div className="relative">
           <button 
             onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
             className="relative p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-colors"
@@ -160,7 +160,7 @@ export default function Header({ onMenuClick }: { onMenuClick?: () => void }) {
               </>
             )}
           </AnimatePresence>
-        </div>
+        </div> */}
 
         {/* Profile Dropdown */}
         <div className="relative">

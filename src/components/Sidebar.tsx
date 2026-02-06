@@ -16,6 +16,8 @@ import {
 import { clsx } from "clsx";
 import { motion } from "framer-motion";
 
+import Image from "next/image";
+
 export default function Sidebar({ className }: { className?: string }) {
   const { hasPermission } = useAuth();
   const pathname = usePathname();
@@ -44,8 +46,13 @@ export default function Sidebar({ className }: { className?: string }) {
       {/* Brand Header */}
       <div className="h-20 flex items-center px-8 border-b border-gray-50/50">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center shadow-indigo-200 shadow-lg">
-            <span className="text-white font-bold text-xl">L</span>
+          <div className="relative w-20 h-20">
+             <Image 
+                src="/LadiesFlavour.jpg" 
+                alt="Ladies Flavour Factory" 
+                fill
+                className="object-cover"
+             />
           </div>
           <div>
             <h1 className="text-lg font-bold text-gray-900 leading-tight">

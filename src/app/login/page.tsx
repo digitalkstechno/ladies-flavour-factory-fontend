@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Card, CardContent } from "@/components/ui/Card";
 import { MdLock } from "react-icons/md";
+import Image from "next/image";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -46,9 +47,14 @@ export default function LoginPage() {
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50">
       <Card className="w-full max-w-md" noPadding>
-        <div className="p-8 text-center border-b border-gray-100 bg-white">
-            <div className="mx-auto w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mb-4 text-indigo-600">
-                <MdLock className="w-6 h-6" />
+        <div className="p-8 text-center border-b border-gray-100 bg-white flex flex-col items-center">
+            <div className="w-50 h-50 relative">
+                <Image 
+                    src="/LadiesFlavour.jpg" 
+                    alt="Ladies Flavour Factory" 
+                    fill
+                    className="object-contain"
+                />
             </div>
             <h2 className="text-2xl font-bold text-gray-900">Welcome Back</h2>
             <p className="text-sm text-gray-500 mt-2">Sign in to your account to continue</p>
