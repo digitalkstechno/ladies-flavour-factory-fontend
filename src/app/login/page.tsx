@@ -48,12 +48,13 @@ export default function LoginPage() {
     <div className="flex items-center justify-center min-h-screen bg-gray-50">
       <Card className="w-full max-w-md" noPadding>
         <div className="p-8 text-center border-b border-gray-100 bg-white flex flex-col items-center">
-            <div className="w-50 h-50 relative">
+            <div className="w-56 h-32 relative mb-4">
                 <Image 
                     src="/LadiesFlavour.jpg" 
                     alt="Ladies Flavour Factory" 
                     fill
                     className="object-contain"
+                    priority
                 />
             </div>
             <h2 className="text-2xl font-bold text-gray-900">Welcome Back</h2>

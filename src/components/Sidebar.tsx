@@ -44,11 +44,11 @@ export default function Sidebar({ className }: { className?: string }) {
       className || "hidden md:flex"
     )}>
       {/* Brand Header */}
-      <div className="h-20 flex items-center px-8 border-b border-gray-50/50">
+      <div className="h-20 flex items-center px-5 border-b border-gray-50/50">
         <div className="flex items-center gap-3">
-          <div className="relative w-20 h-20">
+          <div className="relative w-15 h-15">
              <Image 
-                src="/LadiesFlavour.jpg" 
+                src="/Facelogo.png" 
                 alt="Ladies Flavour Factory" 
                 fill
                 className="object-cover"

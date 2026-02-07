@@ -17,6 +17,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Ladies Flavour Factory Admin",
   description: "Admin Panel for Ladies Flavour Factory",
+  icons: {
+    icon: "/Facelogo.png",
+    shortcut: "/Facelogo.png",
+    apple: "/Facelogo.png",
+  },
 };
 
 export default function RootLayout({
